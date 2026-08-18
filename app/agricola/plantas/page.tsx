@@ -1,0 +1,70 @@
+import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth';
+import Link from 'next/link';
+
+export default async function PlantasPage() {
+  await requireStaff();
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('plantas')
+    .select('id, codigo, variedad, estado_sanitario, ubicacion, lote:lotes(codigo)')
+    .order('codigo', { ascending: false })
+    .limit(500);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold text-brand">Plantas</h1>
+        <Link href="/agricola/plantas/nuevo" className="btn-primary">
+          + Nueva planta
+        </Link>
+      </div>
+      <p className="text-sm text-neutral-500 mb-6">Manual Interno 5.4 / 5.5 — código individual CP-</p>
+
+      {error && (
+        <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {error.message}
+        </p>
+      )}
+
+      <div className="card overflow-x-auto">
+        <table className="data-table w-full border-collapse">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Lote</th>
+              <th>Variedad</th>
+              <th>Estado sanitario</th>
+              <th>Ubicación</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {(data ?? []).length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-center text-neutral-500 py-8">
+                  Sin plantas registradas todavía.
+                </td>
+              </tr>
+            )}
+            {(data ?? []).map((p: any) => (
+              <tr key={p.id}>
+                <td>{p.codigo}</td>
+                <td>{p.lote?.codigo ?? '—'}</td>
+                <td>{p.variedad ?? '—'}</td>
+                <td>{p.estado_sanitario ?? '—'}</td>
+                <td>{p.ubicacion ?? '—'}</td>
+                <td>
+                  <Link href={`/agricola/plantas/${p.id}`} className="text-brand underline">
+                    Ver
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
