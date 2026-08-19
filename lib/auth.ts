@@ -1,10 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { type Rol, ROL_LABELS } from '@/lib/roles';
 
-export type Rol =
-  | 'directorio' | 'secretaria' | 'direccion_tecnica'
-  | 'comite_seguridad' | 'comite_calidad' | 'comite_etica'
-  | 'tesoreria' | 'socio' | 'admin';
+export { type Rol, ROL_LABELS };
 
 export async function getSessionProfile() {
   const supabase = createClient();
@@ -34,15 +32,3 @@ export async function requireAdmin() {
   }
   return profile;
 }
-
-export const ROL_LABELS: Record<Rol, string> = {
-  admin: 'Administrador/a',
-  directorio: 'Directorio',
-  secretaria: 'Secretaría',
-  direccion_tecnica: 'Dirección Técnica',
-  comite_seguridad: 'Comité de Seguridad',
-  comite_calidad: 'Comité de Calidad y Trazabilidad',
-  comite_etica: 'Comité de Ética y Disciplina',
-  tesoreria: 'Tesorería',
-  socio: 'Socio',
-};

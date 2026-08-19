@@ -2,7 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { crearUsuario, type CrearUsuarioState } from '@/lib/actions/usuarios';
-import { ROL_LABELS } from '@/lib/auth';
+import { ROL_LABELS } from '@/lib/roles';
 
 const initialState: CrearUsuarioState = {};
 
