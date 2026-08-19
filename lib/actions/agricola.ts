@@ -47,6 +47,9 @@ export async function crearLote(formData: FormData) {
     sem_cosecha: num(formData, 'sem_cosecha') ?? 1,
     rendimiento_esperado_m2: num(formData, 'rendimiento_esperado_m2'),
     rendimiento_esperado_planta: num(formData, 'rendimiento_esperado_planta'),
+    banco_semillas: str(formData, 'banco_semillas'),
+    thc_pct: num(formData, 'thc_pct'),
+    cbd_pct: num(formData, 'cbd_pct'),
   };
 
   const { data, error } = await supabase.from('lotes').insert(payload).select('id').single();
@@ -55,8 +58,9 @@ export async function crearLote(formData: FormData) {
   }
 
   // Genera automáticamente una ficha de planta (CP-) por cada planta indicada en el
-  // lote, con variedad, fecha de cosecha estimada y producción esperada ya prellenadas,
-  // ya que esa información se conoce desde que se crea el lote.
+  // lote, con variedad, fecha de cosecha estimada, producción esperada, banco de
+  // semillas y % THC/CBD ya prellenados, ya que esa información se conoce desde
+  // que se crea el lote.
   if (payload.n_plantas && payload.n_plantas > 0) {
     const fechaCosecha = calcularFechaCosecha(
       fecha_inicio!,
@@ -70,6 +74,9 @@ export async function crearLote(formData: FormData) {
       fecha_germinacion: fecha_inicio,
       fecha_cosecha: fechaCosecha,
       produccion_esperada_g: payload.rendimiento_esperado_planta,
+      banco_semillas: payload.banco_semillas,
+      thc_pct: payload.thc_pct,
+      cbd_pct: payload.cbd_pct,
       estado_sanitario: 'sano',
     }));
     await supabase.from('plantas').insert(nuevasPlantas);
@@ -97,6 +104,21 @@ export async function actualizarEstadoLote(formData: FormData) {
   revalidatePath('/agricola/planificacion');
 }
 
+// Corrección de datos genéticos del lote (ej. tras un análisis de laboratorio
+// que confirma el % real de THC/CBD, distinto de la estimación inicial).
+export async function actualizarGeneticaLote(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('lote_id'));
+  const patch = {
+    banco_semillas: str(formData, 'banco_semillas'),
+    thc_pct: num(formData, 'thc_pct'),
+    cbd_pct: num(formData, 'cbd_pct'),
+  };
+  await supabase.from('lotes').update(patch).eq('id', id);
+  revalidatePath(`/agricola/lotes/${id}`);
+  revalidatePath('/agricola/lotes');
+}
+
 export async function crearPlanta(formData: FormData) {
   const supabase = createClient();
 
@@ -108,6 +130,9 @@ export async function crearPlanta(formData: FormData) {
     estado_sanitario: str(formData, 'estado_sanitario') ?? 'sano',
     ubicacion: str(formData, 'ubicacion'),
     observaciones: str(formData, 'observaciones'),
+    banco_semillas: str(formData, 'banco_semillas'),
+    thc_pct: num(formData, 'thc_pct'),
+    cbd_pct: num(formData, 'cbd_pct'),
   };
 
   const { data, error } = await supabase.from('plantas').insert(payload).select('id').single();
@@ -127,6 +152,9 @@ export async function actualizarPlanta(formData: FormData) {
     ubicacion: str(formData, 'ubicacion'),
     observaciones: str(formData, 'observaciones'),
     fecha_cosecha: str(formData, 'fecha_cosecha'),
+    banco_semillas: str(formData, 'banco_semillas'),
+    thc_pct: num(formData, 'thc_pct'),
+    cbd_pct: num(formData, 'cbd_pct'),
   };
   await supabase.from('plantas').update(patch).eq('id', id);
   revalidatePath(`/agricola/plantas/${id}`);
@@ -152,6 +180,9 @@ export async function crearMadre(formData: FormData) {
     ubicacion: str(formData, 'ubicacion'),
     observaciones: str(formData, 'observaciones'),
     responsable: profile?.id ?? null,
+    banco_semillas: str(formData, 'banco_semillas'),
+    thc_pct: num(formData, 'thc_pct'),
+    cbd_pct: num(formData, 'cbd_pct'),
   };
 
   const { data, error } = await supabase.from('plantas_madre').insert(payload).select('id').single();
@@ -172,6 +203,20 @@ export async function actualizarEstadoMadre(formData: FormData) {
   revalidatePath('/agricola/madres');
 }
 
+// Corrección de datos genéticos de la madre (ej. tras un análisis de laboratorio).
+export async function actualizarGeneticaMadre(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('madre_id'));
+  const patch = {
+    banco_semillas: str(formData, 'banco_semillas'),
+    thc_pct: num(formData, 'thc_pct'),
+    cbd_pct: num(formData, 'cbd_pct'),
+  };
+  await supabase.from('plantas_madre').update(patch).eq('id', id);
+  revalidatePath(`/agricola/madres/${id}`);
+  revalidatePath('/agricola/madres');
+}
+
 // ---------------------------------------------------------------------
 // Esquejes (propagación)
 // ---------------------------------------------------------------------
@@ -180,8 +225,31 @@ export async function crearEsqueje(formData: FormData) {
   const supabase = createClient();
   const profile = await getSessionProfile();
 
-  const variedad = str(formData, 'variedad');
   const cantidad_realizados = num(formData, 'cantidad_realizados');
+  const madreId = str(formData, 'madre_id');
+
+  let variedad = str(formData, 'variedad');
+  let banco_semillas = str(formData, 'banco_semillas');
+  let thc_pct = num(formData, 'thc_pct');
+  let cbd_pct = num(formData, 'cbd_pct');
+
+  // Un esqueje es genéticamente idéntico a su madre: si se eligió una madre,
+  // sus datos (variedad, banco de semillas, % THC/CBD) mandan sobre lo escrito
+  // a mano en el formulario.
+  if (madreId) {
+    const { data: madre } = await supabase
+      .from('plantas_madre')
+      .select('variedad, banco_semillas, thc_pct, cbd_pct')
+      .eq('id', madreId)
+      .maybeSingle();
+    if (madre) {
+      variedad = madre.variedad ?? variedad;
+      banco_semillas = madre.banco_semillas ?? banco_semillas;
+      thc_pct = madre.thc_pct ?? thc_pct;
+      cbd_pct = madre.cbd_pct ?? cbd_pct;
+    }
+  }
+
   if (!variedad || !cantidad_realizados) {
     redirect(
       '/agricola/esquejes/nuevo?error=' + encodeURIComponent('Variedad y cantidad de esquejes son obligatorios.')
@@ -189,12 +257,15 @@ export async function crearEsqueje(formData: FormData) {
   }
 
   const payload = {
-    madre_id: str(formData, 'madre_id'),
+    madre_id: madreId,
     variedad,
     fecha: str(formData, 'fecha') ?? new Date().toISOString().slice(0, 10),
     cantidad_realizados,
     observaciones: str(formData, 'observaciones'),
     responsable: profile?.id ?? null,
+    banco_semillas,
+    thc_pct,
+    cbd_pct,
   };
 
   const { data, error } = await supabase.from('esquejes').insert(payload).select('id').single();
@@ -270,6 +341,10 @@ export async function promoverEsquejeALote(formData: FormData) {
     rendimiento_esperado_m2,
     rendimiento_esperado_planta,
     origen_esqueje_id: esqueje!.id,
+    // El lote hereda la genética del esqueje (que a su vez la heredó de la madre).
+    banco_semillas: esqueje!.banco_semillas,
+    thc_pct: esqueje!.thc_pct,
+    cbd_pct: esqueje!.cbd_pct,
   };
 
   const { data: lote, error } = await supabase.from('lotes').insert(lotePayload).select('id').single();
@@ -284,6 +359,9 @@ export async function promoverEsquejeALote(formData: FormData) {
     fecha_germinacion: fecha_inicio,
     fecha_cosecha: fechaCosecha,
     produccion_esperada_g: rendimiento_esperado_planta,
+    banco_semillas: esqueje!.banco_semillas,
+    thc_pct: esqueje!.thc_pct,
+    cbd_pct: esqueje!.cbd_pct,
     estado_sanitario: 'sano',
   }));
   await supabase.from('plantas').insert(nuevasPlantas);

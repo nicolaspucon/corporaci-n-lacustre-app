@@ -27,6 +27,11 @@ export default async function VerificarEntregaPage({ params }: { params: { token
           <Fila label="Fecha del envío" value={new Date(info.fecha_hora).toLocaleString('es-CL')} />
           <Fila label="Cantidad" value={info.cantidad_g ? `${info.cantidad_g} g` : null} />
           <Fila label="Destino" value={info.destino} />
+          <Fila label="Lote" value={info.lote_codigo} />
+          <Fila label="Variedad" value={info.variedad} />
+          <Fila label="Banco de semillas" value={info.banco_semillas} />
+          <Fila label="% THC" value={info.thc_pct} />
+          <Fila label="% CBD" value={info.cbd_pct} />
         </div>
       )}
 
@@ -39,7 +44,7 @@ export default async function VerificarEntregaPage({ params }: { params: { token
   );
 }
 
-function Fila({ label, value, capitalize }: { label: string; value: string | null | undefined; capitalize?: boolean }) {
+function Fila({ label, value, capitalize }: { label: string; value: string | number | null | undefined; capitalize?: boolean }) {
   return (
     <div className="grid grid-cols-2 gap-2 border-b border-neutral-100 pb-2">
       <p className="text-neutral-500">{label}</p>

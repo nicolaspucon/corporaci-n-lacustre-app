@@ -32,6 +32,26 @@ export default async function NuevoLotePage({ searchParams }: { searchParams: { 
           </div>
         </div>
 
+        <div>
+          <label className="label" htmlFor="banco_semillas">Banco de semillas (marca)</label>
+          <input className="input" id="banco_semillas" name="banco_semillas" />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label" htmlFor="thc_pct">% THC</label>
+            <input className="input" id="thc_pct" name="thc_pct" type="number" step="0.01" />
+          </div>
+          <div>
+            <label className="label" htmlFor="cbd_pct">% CBD</label>
+            <input className="input" id="cbd_pct" name="cbd_pct" type="number" step="0.01" />
+          </div>
+        </div>
+        <p className="text-xs text-neutral-400 -mt-2">
+          Se copian solos a la planilla de plantas que se genera con este lote (si viene de un esquejado, ya
+          se prellenan automáticamente desde la madre de origen).
+        </p>
+
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="label" htmlFor="area_m2">Área (m²)</label>

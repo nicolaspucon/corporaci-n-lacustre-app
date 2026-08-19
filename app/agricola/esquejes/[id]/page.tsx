@@ -51,6 +51,8 @@ export default async function EsquejeDetallePage({
 
       <div className="card p-5 text-sm space-y-1">
         <p><span className="text-neutral-500">Madre de origen:</span> {madre ? `${madre.codigo} — ${madre.variedad}` : 'Sin madre específica'}</p>
+        <p><span className="text-neutral-500">Banco de semillas:</span> {esqueje.banco_semillas ?? '—'}</p>
+        <p><span className="text-neutral-500">% THC / % CBD:</span> {esqueje.thc_pct ?? '—'} / {esqueje.cbd_pct ?? '—'}</p>
         <p><span className="text-neutral-500">Esquejes realizados:</span> {esqueje.cantidad_realizados}</p>
         <p><span className="text-neutral-500">Enraizados sanos:</span> {esqueje.cantidad_enraizadas ?? '—'}</p>
         <p><span className="text-neutral-500">Perdidos:</span> {esqueje.cantidad_perdidas ?? '—'}</p>
@@ -98,7 +100,7 @@ export default async function EsquejeDetallePage({
           <h2 className="font-semibold text-brand mb-2">Pasar a vegetación (crear lote)</h2>
           <p className="text-sm text-neutral-500 mb-3">
             Se creará un lote con {esqueje.cantidad_enraizadas} plantas de {esqueje.variedad}, ya con la
-            variedad y producción esperada prellenadas.
+            variedad, producción esperada, banco de semillas y % THC/CBD prellenados.
           </p>
           <form action={promoverEsquejeALote} className="card p-6 space-y-4">
             <input type="hidden" name="esqueje_id" value={esqueje.id} />

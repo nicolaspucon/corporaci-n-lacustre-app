@@ -11,7 +11,7 @@ export default async function RotuloEntregaPage({ params }: { params: { id: stri
 
   const { data: entrega } = await supabase
     .from('entregas')
-    .select('*, socio:socios(nombre_completo, rut), lote:lotes(codigo, cultivo_genetica)')
+    .select('*, socio:socios(nombre_completo, rut), lote:lotes(codigo, cultivo_genetica, banco_semillas, thc_pct, cbd_pct)')
     .eq('id', params.id)
     .single();
 
@@ -54,6 +54,9 @@ export default async function RotuloEntregaPage({ params }: { params: { id: stri
           <Campo label="Cantidad" value={entrega.cantidad_g ? `${entrega.cantidad_g} g` : null} />
           <Campo label="Lote" value={lote?.codigo} />
           <Campo label="Variedad" value={lote?.cultivo_genetica} />
+          <Campo label="Banco de semillas" value={lote?.banco_semillas} />
+          <Campo label="% THC" value={lote?.thc_pct} />
+          <Campo label="% CBD" value={lote?.cbd_pct} />
         </div>
 
         <div className="flex flex-col items-center gap-2 border-t border-neutral-200 pt-4">

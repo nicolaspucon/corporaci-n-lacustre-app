@@ -41,6 +41,10 @@ export default async function NuevoEsquejePage({
               </option>
             ))}
           </select>
+          <p className="text-xs text-neutral-400 mt-1">
+            Si eliges una madre, la variedad, el banco de semillas y el % THC/CBD de abajo se ignoran: se
+            copian solos desde la ficha de la madre (el esqueje es genéticamente idéntico a ella).
+          </p>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
@@ -59,6 +63,22 @@ export default async function NuevoEsquejePage({
               type="date"
               defaultValue={new Date().toISOString().slice(0, 10)}
             />
+          </div>
+        </div>
+
+        <div>
+          <label className="label" htmlFor="banco_semillas">Banco de semillas (marca)</label>
+          <input className="input" id="banco_semillas" name="banco_semillas" />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label" htmlFor="thc_pct">% THC</label>
+            <input className="input" id="thc_pct" name="thc_pct" type="number" step="0.01" />
+          </div>
+          <div>
+            <label className="label" htmlFor="cbd_pct">% CBD</label>
+            <input className="input" id="cbd_pct" name="cbd_pct" type="number" step="0.01" />
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { actualizarEstadoLote } from '@/lib/actions/agricola';
+import { actualizarEstadoLote, actualizarGeneticaLote } from '@/lib/actions/agricola';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -65,7 +65,38 @@ export default async function LoteDetallePage({
         <p className="text-sm text-neutral-500">
           {lote.cultivo_genetica ?? 'Genética no especificada'} · {lote.area_m2 ?? '—'} m² · {lote.n_plantas ?? '—'} plantas planificadas
         </p>
+        <p className="text-sm text-neutral-500">
+          Banco de semillas: {lote.banco_semillas ?? '—'} · % THC: {lote.thc_pct ?? '—'} · % CBD: {lote.cbd_pct ?? '—'}
+        </p>
       </div>
+
+      <section>
+        <h2 className="font-semibold text-brand mb-2">Editar datos genéticos</h2>
+        <p className="text-sm text-neutral-500 mb-3">
+          Útil para corregir con el resultado de un análisis de laboratorio. Estos datos son los que se
+          muestran en el rótulo de transporte y en la verificación por QR de las entregas de este lote.
+        </p>
+        <form action={actualizarGeneticaLote} className="card p-5 grid sm:grid-cols-3 gap-4 items-end">
+          <input type="hidden" name="lote_id" value={lote.id} />
+          <div>
+            <label className="label" htmlFor="banco_semillas">Banco de semillas</label>
+            <input className="input" id="banco_semillas" name="banco_semillas" defaultValue={lote.banco_semillas ?? ''} />
+          </div>
+          <div>
+            <label className="label" htmlFor="thc_pct">% THC</label>
+            <input className="input" id="thc_pct" name="thc_pct" type="number" step="0.01" defaultValue={lote.thc_pct ?? ''} />
+          </div>
+          <div>
+            <label className="label" htmlFor="cbd_pct">% CBD</label>
+            <input className="input" id="cbd_pct" name="cbd_pct" type="number" step="0.01" defaultValue={lote.cbd_pct ?? ''} />
+          </div>
+          <div className="sm:col-span-3">
+            <button type="submit" className="btn-secondary text-sm">
+              Guardar datos genéticos
+            </button>
+          </div>
+        </form>
+      </section>
 
       <section>
         <h2 className="font-semibold text-brand mb-3">Planificación calculada</h2>

@@ -47,6 +47,22 @@ export default async function NuevaPlantaPage({ searchParams }: { searchParams: 
           </div>
         </div>
 
+        <div>
+          <label className="label" htmlFor="banco_semillas">Banco de semillas (marca)</label>
+          <input className="input" id="banco_semillas" name="banco_semillas" />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label" htmlFor="thc_pct">% THC</label>
+            <input className="input" id="thc_pct" name="thc_pct" type="number" step="0.01" />
+          </div>
+          <div>
+            <label className="label" htmlFor="cbd_pct">% CBD</label>
+            <input className="input" id="cbd_pct" name="cbd_pct" type="number" step="0.01" />
+          </div>
+        </div>
+
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="label" htmlFor="origen">Origen (semilla / esqueje / madre)</label>

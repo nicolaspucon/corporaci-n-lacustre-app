@@ -36,6 +36,26 @@ export default async function NuevaMadrePage({ searchParams }: { searchParams: {
         </div>
 
         <div>
+          <label className="label" htmlFor="banco_semillas">Banco de semillas (marca)</label>
+          <input className="input" id="banco_semillas" name="banco_semillas" />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label" htmlFor="thc_pct">% THC</label>
+            <input className="input" id="thc_pct" name="thc_pct" type="number" step="0.01" />
+          </div>
+          <div>
+            <label className="label" htmlFor="cbd_pct">% CBD</label>
+            <input className="input" id="cbd_pct" name="cbd_pct" type="number" step="0.01" />
+          </div>
+        </div>
+        <p className="text-xs text-neutral-400 -mt-2">
+          Estos datos se copian solos a los esquejes que se saquen de esta madre, y de ahí a los lotes y
+          plantas que se generen.
+        </p>
+
+        <div>
           <label className="label" htmlFor="ubicacion">Ubicación</label>
           <input className="input" id="ubicacion" name="ubicacion" />
         </div>

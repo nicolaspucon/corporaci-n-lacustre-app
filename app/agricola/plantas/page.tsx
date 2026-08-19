@@ -8,7 +8,7 @@ export default async function PlantasPage() {
 
   const { data, error } = await supabase
     .from('plantas')
-    .select('id, codigo, variedad, estado_sanitario, fecha_cosecha, produccion_esperada_g, ubicacion, lote:lotes(codigo)')
+    .select('id, codigo, variedad, estado_sanitario, fecha_cosecha, produccion_esperada_g, banco_semillas, thc_pct, cbd_pct, ubicacion, lote:lotes(codigo)')
     .order('codigo', { ascending: false })
     .limit(500);
 
@@ -35,6 +35,9 @@ export default async function PlantasPage() {
               <th>Código</th>
               <th>Lote</th>
               <th>Variedad</th>
+              <th>Banco semillas</th>
+              <th>% THC</th>
+              <th>% CBD</th>
               <th>Estado sanitario</th>
               <th>Cosecha estimada</th>
               <th>Producción esperada</th>
@@ -45,7 +48,7 @@ export default async function PlantasPage() {
           <tbody>
             {(data ?? []).length === 0 && (
               <tr>
-                <td colSpan={8} className="text-center text-neutral-500 py-8">
+                <td colSpan={11} className="text-center text-neutral-500 py-8">
                   Sin plantas registradas todavía.
                 </td>
               </tr>
@@ -55,6 +58,9 @@ export default async function PlantasPage() {
                 <td>{p.codigo}</td>
                 <td>{p.lote?.codigo ?? '—'}</td>
                 <td>{p.variedad ?? '—'}</td>
+                <td>{p.banco_semillas ?? '—'}</td>
+                <td>{p.thc_pct ?? '—'}</td>
+                <td>{p.cbd_pct ?? '—'}</td>
                 <td>{p.estado_sanitario ?? '—'}</td>
                 <td>{p.fecha_cosecha ?? '—'}</td>
                 <td>{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</td>
