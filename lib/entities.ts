@@ -180,6 +180,7 @@ export const ENTITIES: EntityDef[] = [
       { key: 'fin', label: 'Finalización', type: 'date', faseFinal: true },
       { key: 'humedad_pct', label: 'Humedad (%)', type: 'number', faseFinal: true },
       { key: 'evaluacion_organoleptica', label: 'Evaluación organoléptica', type: 'text', faseFinal: true },
+      { key: 'peso_final_g', label: 'Peso final curado (g)', type: 'number', faseFinal: true },
     ],
   },
   {

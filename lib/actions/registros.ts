@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getEntity, getResponsableColumn } from '@/lib/entities';
+import { saldoActualLote } from '@/lib/inventario';
 import { revalidatePath } from 'next/cache';
 
 export async function createRegistro(formData: FormData) {
@@ -105,6 +106,9 @@ export async function actualizarRegistro(formData: FormData) {
   }
 
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const payload: Record<string, unknown> = {};
 
@@ -147,6 +151,41 @@ export async function actualizarRegistro(formData: FormData) {
 
   if (error) {
     redirect(`/registros/${slug}/${id}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  // Al terminar el Curado con un peso final, el producto queda disponible:
+  // genera solo una "entrada" en el Registro de Inventario (una sola vez por
+  // registro, gracias a origen_curado_id).
+  if (entity!.slug === 'curado' && typeof payload['peso_final_g'] === 'number' && payload['peso_final_g']! > 0) {
+    const { data: yaExiste } = await supabase
+      .from('registros_inventario')
+      .select('id')
+      .eq('origen_curado_id', id)
+      .limit(1);
+
+    if (!yaExiste || yaExiste.length === 0) {
+      const { data: curadoReg } = await supabase
+        .from('registros_curado')
+        .select('lote_id, lote:lotes(codigo, cultivo_genetica)')
+        .eq('id', id)
+        .maybeSingle();
+      const loteId = (curadoReg as any)?.lote_id ?? null;
+      const lote = (curadoReg as any)?.lote;
+
+      await supabase.from('registros_inventario').insert({
+        fecha: new Date().toISOString().slice(0, 10),
+        codigo: lote?.codigo ?? null,
+        lote_id: loteId,
+        tipo_movimiento: 'entrada',
+        cantidad_g: payload['peso_final_g'],
+        origen_curado_id: id,
+        documento_respaldo: lote?.codigo ? `Curado ${lote.codigo}` : 'Curado finalizado',
+        observaciones: `Entrada automática: curado finalizado${lote?.cultivo_genetica ? ' — ' + lote.cultivo_genetica : ''}.`,
+        responsable: user?.id ?? null,
+        saldo_resultante_g: loteId ? (await saldoActualLote(supabase, loteId)) + Number(payload['peso_final_g']) : null,
+      });
+      revalidatePath('/registros/inventario');
+    }
   }
 
   revalidatePath(`/registros/${slug}`);

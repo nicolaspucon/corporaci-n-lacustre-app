@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
+import { saldoActualLote } from '@/lib/inventario';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
@@ -99,18 +100,22 @@ export async function crearEntrega(formData: FormData) {
     await supabase.from('solicitudes_suministro').update({ resolucion: 'aprobada' }).eq('id', solicitudId);
   }
 
-  // Descuenta automáticamente la entrega del Registro de Inventario (salida).
+  // Descuenta automáticamente la entrega del Registro de Inventario (salida),
+  // vinculada al lote para poder calcular el stock disponible real.
   if (payload.cantidad_g) {
     const entregaCodigo = (data as any)?.codigo;
     const loteCodigo = (data as any)?.lote?.codigo ?? null;
+    const saldoPrevio = await saldoActualLote(supabase, loteId!);
     await supabase.from('registros_inventario').insert({
       fecha: new Date().toISOString().slice(0, 10),
       codigo: loteCodigo,
+      lote_id: loteId,
       tipo_movimiento: 'salida',
       cantidad_g: payload.cantidad_g,
       documento_respaldo: entregaCodigo,
       observaciones: `Salida automática por entrega ${entregaCodigo ?? ''}.`,
       responsable: profile?.id ?? null,
+      saldo_resultante_g: saldoPrevio - Number(payload.cantidad_g),
     });
     revalidatePath('/registros/inventario');
   }
