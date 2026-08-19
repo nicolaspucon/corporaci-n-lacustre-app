@@ -2,7 +2,17 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
 import { crearTraslado } from '@/lib/actions/transporte';
 
-export default async function NuevoTrasladoPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function NuevoTrasladoPage({
+  searchParams,
+}: {
+  searchParams: {
+    error?: string;
+    entrega_id?: string;
+    lote_id?: string;
+    destino?: string;
+    cantidad?: string;
+  };
+}) {
   await requireStaff();
   const supabase = createClient();
 
@@ -29,7 +39,7 @@ export default async function NuevoTrasladoPage({ searchParams }: { searchParams
 
         <div>
           <label className="label" htmlFor="tipo">Tipo de traslado</label>
-          <select className="input" id="tipo" name="tipo" defaultValue="interno">
+          <select className="input" id="tipo" name="tipo" defaultValue={searchParams?.destino ? 'externo' : 'interno'}>
             <option value="interno">Interno (dentro de la Corporación)</option>
             <option value="externo">Externo (hacia/desde un socio u otro destino)</option>
           </select>
@@ -42,7 +52,7 @@ export default async function NuevoTrasladoPage({ searchParams }: { searchParams
           </div>
           <div>
             <label className="label" htmlFor="destino">Destino</label>
-            <input className="input" id="destino" name="destino" />
+            <input className="input" id="destino" name="destino" defaultValue={searchParams?.destino ?? ''} />
           </div>
         </div>
 
@@ -60,7 +70,7 @@ export default async function NuevoTrasladoPage({ searchParams }: { searchParams
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="label" htmlFor="lote_id">Lote relacionado</label>
-            <select className="input" id="lote_id" name="lote_id">
+            <select className="input" id="lote_id" name="lote_id" defaultValue={searchParams?.lote_id ?? ''}>
               <option value="">— Sin asignar —</option>
               {(lotes ?? []).map((l) => (
                 <option key={l.id} value={l.id}>{l.codigo}</option>
@@ -69,7 +79,7 @@ export default async function NuevoTrasladoPage({ searchParams }: { searchParams
           </div>
           <div>
             <label className="label" htmlFor="entrega_id">Entrega relacionada</label>
-            <select className="input" id="entrega_id" name="entrega_id">
+            <select className="input" id="entrega_id" name="entrega_id" defaultValue={searchParams?.entrega_id ?? ''}>
               <option value="">— Sin asignar —</option>
               {(entregas ?? []).map((e) => (
                 <option key={e.id} value={e.id}>{e.codigo}</option>
@@ -80,7 +90,13 @@ export default async function NuevoTrasladoPage({ searchParams }: { searchParams
 
         <div>
           <label className="label" htmlFor="cantidad">Cantidad transportada</label>
-          <input className="input" id="cantidad" name="cantidad" placeholder="Ej. 120 g flor seca" />
+          <input
+            className="input"
+            id="cantidad"
+            name="cantidad"
+            placeholder="Ej. 120 g flor seca"
+            defaultValue={searchParams?.cantidad ?? ''}
+          />
         </div>
 
         <div>

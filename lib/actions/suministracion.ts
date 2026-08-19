@@ -77,7 +77,11 @@ export async function crearEntrega(formData: FormData) {
     observaciones: str(formData, 'observaciones'),
   };
 
-  const { data, error } = await supabase.from('entregas').insert(payload).select('id').single();
+  const { data, error } = await supabase
+    .from('entregas')
+    .insert(payload)
+    .select('id, codigo, lote:lotes(codigo)')
+    .single();
   if (error) {
     redirect('/suministracion/entregas/nuevo?error=' + encodeURIComponent(error.message));
   }
@@ -85,6 +89,22 @@ export async function crearEntrega(formData: FormData) {
   const solicitudId = str(formData, 'solicitud_id');
   if (solicitudId) {
     await supabase.from('solicitudes_suministro').update({ resolucion: 'aprobada' }).eq('id', solicitudId);
+  }
+
+  // Descuenta automáticamente la entrega del Registro de Inventario (salida).
+  if (payload.cantidad_g) {
+    const entregaCodigo = (data as any)?.codigo;
+    const loteCodigo = (data as any)?.lote?.codigo ?? null;
+    await supabase.from('registros_inventario').insert({
+      fecha: new Date().toISOString().slice(0, 10),
+      codigo: loteCodigo,
+      tipo_movimiento: 'salida',
+      cantidad_g: payload.cantidad_g,
+      documento_respaldo: entregaCodigo,
+      observaciones: `Salida automática por entrega ${entregaCodigo ?? ''}.`,
+      responsable: profile?.id ?? null,
+    });
+    revalidatePath('/registros/inventario');
   }
 
   revalidatePath('/suministracion/entregas');

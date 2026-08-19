@@ -57,7 +57,21 @@ export async function createRegistro(formData: FormData) {
     redirect(`/registros/${slug}/nuevo?error=${encodeURIComponent(error.message)}`);
   }
 
+  // Manejo fitosanitario marcado "¿Registrado como incidente?" -> crea el incidente solo.
+  if (entity.slug === 'fitosanitario' && payload['registrado_como_incidente'] === true) {
+    await supabase.from('incidentes').insert({
+      fecha_hora: new Date().toISOString(),
+      tipo: 'Fitosanitario',
+      descripcion: `Generado automáticamente desde Manejo Fitosanitario (${payload['fecha'] ?? ''}). Problema: ${payload['problema'] ?? '—'}. Acción: ${payload['accion'] ?? '—'}. Producto: ${payload['producto'] ?? '—'}.`,
+      estado: 'abierto',
+      responsable_reporte: user?.id ?? null,
+    });
+  }
+
   revalidatePath(`/registros/${slug}`);
+  if (entity.slug === 'fitosanitario' && payload['registrado_como_incidente'] === true) {
+    revalidatePath('/registros/incidentes');
+  }
   redirect(`/registros/${slug}/${created!.id}`);
 }
 

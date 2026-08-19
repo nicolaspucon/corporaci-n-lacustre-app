@@ -8,16 +8,18 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
   await requireStaff();
   const supabase = createClient();
 
-  const [{ data: entrega }, { data: firmas }] = await Promise.all([
+  const [{ data: entrega }, { data: firmas }, { data: traslados }] = await Promise.all([
     supabase
       .from('entregas')
       .select('*, socio:socios(cus, nombre_completo), lote:lotes(codigo)')
       .eq('id', params.id)
       .single(),
     supabase.from('firmas').select('*').eq('contexto', 'entrega').eq('referencia_id', params.id),
+    supabase.from('traslados').select('id, codigo').eq('entrega_id', params.id).limit(1),
   ]);
 
   if (!entrega) notFound();
+  const yaTieneTraslado = (traslados ?? []).length > 0;
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -37,8 +39,29 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
       <div className="card p-5 text-sm space-y-1">
         <p><span className="text-neutral-500">Lote de origen:</span> {(entrega.lote as any)?.codigo ?? '—'}</p>
         <p><span className="text-neutral-500">Cantidad entregada:</span> {entrega.cantidad_g ?? '—'} g</p>
+        <p><span className="text-neutral-500">Destino:</span> {entrega.destino ?? '—'}</p>
         <p><span className="text-neutral-500">Observaciones:</span> {entrega.observaciones ?? '—'}</p>
       </div>
+
+      {entrega.destino && !yaTieneTraslado && (
+        <div className="card p-6 bg-amber-50 border border-amber-200">
+          <p className="text-sm mb-3">
+            Esta entrega tiene un destino registrado. ¿Corresponde generar el traslado hacia allá?
+          </p>
+          <Link
+            href={`/transporte/nuevo?entrega_id=${entrega.id}&destino=${encodeURIComponent(entrega.destino)}&lote_id=${entrega.lote_id ?? ''}&cantidad=${encodeURIComponent(entrega.cantidad_g ? entrega.cantidad_g + ' g' : '')}`}
+            className="btn-primary text-sm"
+          >
+            Generar traslado
+          </Link>
+        </div>
+      )}
+
+      {yaTieneTraslado && (
+        <p className="text-sm text-brand bg-brand-pale rounded px-3 py-2">
+          Ya existe un traslado registrado para esta entrega ({traslados![0].codigo}).
+        </p>
+      )}
 
       <section>
         <h2 className="font-semibold text-brand mb-3">Firma de recepción</h2>
