@@ -1,9 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { actualizarPlanta } from '@/lib/actions/agricola';
+import { actualizarPlanta, eliminarPlanta } from '@/lib/actions/agricola';
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import { notFound } from 'next/navigation';
 
-export default async function PlantaDetallePage({ params }: { params: { id: string } }) {
+export default async function PlantaDetallePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { error?: string };
+}) {
   await requireStaff();
   const supabase = createClient();
 
@@ -30,6 +37,12 @@ export default async function PlantaDetallePage({ params }: { params: { id: stri
           Banco de semillas: {planta.banco_semillas ?? '—'} · % THC: {planta.thc_pct ?? '—'} · % CBD: {planta.cbd_pct ?? '—'}
         </p>
       </div>
+
+      {searchParams?.error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {searchParams.error}
+        </p>
+      )}
 
       <form action={actualizarPlanta} className="card p-6 space-y-4">
         <input type="hidden" name="planta_id" value={planta.id} />
@@ -78,6 +91,16 @@ export default async function PlantaDetallePage({ params }: { params: { id: stri
         <button type="submit" className="btn-primary">
           Guardar cambios
         </button>
+      </form>
+
+      <form action={eliminarPlanta} className="pt-2">
+        <input type="hidden" name="planta_id" value={planta.id} />
+        <ConfirmSubmitButton
+          confirmText="¿Eliminar esta planta? Esta acción no se puede deshacer."
+          className="text-sm text-red-600 hover:underline"
+        >
+          Eliminar planta
+        </ConfirmSubmitButton>
       </form>
     </div>
   );

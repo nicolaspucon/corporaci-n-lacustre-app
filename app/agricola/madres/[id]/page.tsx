@@ -1,12 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { actualizarEstadoMadre, actualizarGeneticaMadre } from '@/lib/actions/agricola';
+import { actualizarEstadoMadre, actualizarGeneticaMadre, eliminarMadre } from '@/lib/actions/agricola';
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 const ESTADOS = ['activa', 'retirada'];
 
-export default async function MadreDetallePage({ params }: { params: { id: string } }) {
+export default async function MadreDetallePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { error?: string };
+}) {
   await requireStaff();
   const supabase = createClient();
 
@@ -41,6 +48,12 @@ export default async function MadreDetallePage({ params }: { params: { id: strin
           </button>
         </form>
       </div>
+
+      {searchParams?.error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {searchParams.error}
+        </p>
+      )}
 
       <div className="card p-5 text-sm space-y-1">
         <p><span className="text-neutral-500">Fecha de inicio:</span> {madre.fecha_inicio}</p>
@@ -109,6 +122,16 @@ export default async function MadreDetallePage({ params }: { params: { id: strin
           ))}
         </div>
       </section>
+
+      <form action={eliminarMadre} className="pt-2">
+        <input type="hidden" name="madre_id" value={madre.id} />
+        <ConfirmSubmitButton
+          confirmText="¿Eliminar esta madre? Esta acción no se puede deshacer."
+          className="text-sm text-red-600 hover:underline"
+        >
+          Eliminar madre
+        </ConfirmSubmitButton>
+      </form>
     </div>
   );
 }

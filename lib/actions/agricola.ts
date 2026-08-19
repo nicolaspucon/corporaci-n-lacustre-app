@@ -374,3 +374,97 @@ export async function promoverEsquejeALote(formData: FormData) {
   revalidatePath('/agricola/planificacion');
   redirect(`/agricola/lotes/${lote!.id}?plantas_creadas=${esqueje!.cantidad_enraizadas}`);
 }
+
+// ---------------------------------------------------------------------
+// Eliminar (para corregir errores de ingreso)
+// ---------------------------------------------------------------------
+
+export async function eliminarLote(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('lote_id') || '');
+  if (!id) redirect('/agricola/lotes');
+
+  // Limpieza completa: si fue un error, se eliminan también las fichas de
+  // planta que se generaron automáticamente para este lote.
+  await supabase.from('plantas').delete().eq('lote_id', id);
+
+  const { error } = await supabase.from('lotes').delete().eq('id', id);
+  if (error) {
+    if (error.code === '23503') {
+      redirect(
+        `/agricola/lotes/${id}?error=` +
+          encodeURIComponent(
+            'No se puede eliminar: este lote ya tiene registros asociados (secado, curado, entregas, inventario, etc.). Si fue un error, corrige sus datos o cámbiale el estado a "cerrado" en vez de eliminarlo.'
+          )
+      );
+    }
+    redirect(`/agricola/lotes/${id}?error=` + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/agricola/lotes');
+  revalidatePath('/agricola/plantas');
+  revalidatePath('/agricola/planificacion');
+  redirect('/agricola/lotes');
+}
+
+export async function eliminarPlanta(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('planta_id') || '');
+  if (!id) redirect('/agricola/plantas');
+
+  const { error } = await supabase.from('plantas').delete().eq('id', id);
+  if (error) {
+    if (error.code === '23503') {
+      redirect(
+        `/agricola/plantas/${id}?error=` +
+          encodeURIComponent('No se puede eliminar: esta planta ya tiene registros asociados (riego, manejos, etc.).')
+      );
+    }
+    redirect(`/agricola/plantas/${id}?error=` + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/agricola/plantas');
+  redirect('/agricola/plantas');
+}
+
+export async function eliminarMadre(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('madre_id') || '');
+  if (!id) redirect('/agricola/madres');
+
+  const { error } = await supabase.from('plantas_madre').delete().eq('id', id);
+  if (error) {
+    if (error.code === '23503') {
+      redirect(
+        `/agricola/madres/${id}?error=` +
+          encodeURIComponent(
+            'No se puede eliminar: esta madre ya tiene esquejes registrados. Si ya no se usa, cámbiale el estado a "retirada" en vez de eliminarla.'
+          )
+      );
+    }
+    redirect(`/agricola/madres/${id}?error=` + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/agricola/madres');
+  redirect('/agricola/madres');
+}
+
+export async function eliminarEsqueje(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('esqueje_id') || '');
+  if (!id) redirect('/agricola/esquejes');
+
+  const { error } = await supabase.from('esquejes').delete().eq('id', id);
+  if (error) {
+    if (error.code === '23503') {
+      redirect(
+        `/agricola/esquejes/${id}?error=` +
+          encodeURIComponent('No se puede eliminar: este esquejado ya pasó a un lote. Si fue un error, elimina primero ese lote.')
+      );
+    }
+    redirect(`/agricola/esquejes/${id}?error=` + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/agricola/esquejes');
+  redirect('/agricola/esquejes');
+}

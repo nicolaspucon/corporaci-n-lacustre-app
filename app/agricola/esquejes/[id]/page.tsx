@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { actualizarResultadoEsqueje, promoverEsquejeALote } from '@/lib/actions/agricola';
+import { actualizarResultadoEsqueje, promoverEsquejeALote, eliminarEsqueje } from '@/lib/actions/agricola';
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -160,6 +161,16 @@ export default async function EsquejeDetallePage({
           </form>
         </section>
       )}
+
+      <form action={eliminarEsqueje} className="pt-2">
+        <input type="hidden" name="esqueje_id" value={esqueje.id} />
+        <ConfirmSubmitButton
+          confirmText="¿Eliminar este esquejado? Esta acción no se puede deshacer."
+          className="text-sm text-red-600 hover:underline"
+        >
+          Eliminar esquejado
+        </ConfirmSubmitButton>
+      </form>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { actualizarEstadoLote, actualizarGeneticaLote } from '@/lib/actions/agricola';
+import { actualizarEstadoLote, actualizarGeneticaLote, eliminarLote } from '@/lib/actions/agricola';
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -17,7 +18,7 @@ export default async function LoteDetallePage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams?: { plantas_creadas?: string };
+  searchParams?: { plantas_creadas?: string; error?: string };
 }) {
   await requireStaff();
   const supabase = createClient();
@@ -47,6 +48,11 @@ export default async function LoteDetallePage({
       {searchParams?.plantas_creadas && (
         <p className="text-sm text-brand bg-brand-pale rounded px-3 py-2">
           Se generaron automáticamente {searchParams.plantas_creadas} fichas de planta para este lote.
+        </p>
+      )}
+      {searchParams?.error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {searchParams.error}
         </p>
       )}
       <div>
@@ -175,6 +181,16 @@ export default async function LoteDetallePage({
           <p className="text-xs text-neutral-400">Cerrado el {lote.fecha_cierre}</p>
         </section>
       )}
+
+      <form action={eliminarLote} className="pt-2">
+        <input type="hidden" name="lote_id" value={lote.id} />
+        <ConfirmSubmitButton
+          confirmText="¿Eliminar este lote? También se eliminarán las plantas generadas para él. Esta acción no se puede deshacer."
+          className="text-sm text-red-600 hover:underline"
+        >
+          Eliminar lote
+        </ConfirmSubmitButton>
+      </form>
     </div>
   );
 }
