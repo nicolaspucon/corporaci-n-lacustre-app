@@ -79,3 +79,29 @@ export async function eliminarRegistro(formData: FormData) {
   revalidatePath(`/registros/${slug}`);
   redirect(`/registros/${slug}`);
 }
+
+
+export async function confirmarIngreso(formData: FormData) {
+  const returnTo = String(formData.get('__return') || '/dashboard');
+  const motivo = String(formData.get('motivo') || '');
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: prof } = await supabase.from('profiles').select('nombre_completo').eq('id', user.id).single();
+    const now = new Date();
+    await supabase.from('registro_ingreso_visitas').insert({
+      nombre: prof?.nombre_completo ?? 'Equipo técnico',
+      motivo,
+      fecha: now.toISOString().slice(0, 10),
+      hora_ingreso: now.toTimeString().slice(0, 5),
+      autorizado_por: user.id,
+    });
+  }
+
+  revalidatePath(returnTo);
+  redirect(returnTo);
+}

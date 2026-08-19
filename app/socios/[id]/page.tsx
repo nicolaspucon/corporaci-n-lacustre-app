@@ -207,6 +207,10 @@ export default async function SocioDetallePage({
 
           <div className="grid sm:grid-cols-3 gap-4">
             <div>
+              <label className="label">N.º de receta</label>
+              <input className="input" name="numero_receta" defaultValue={ficha?.numero_receta ?? ''} />
+            </div>
+            <div>
               <label className="label">Fecha de receta</label>
               <input className="input" type="date" name="fecha_receta" defaultValue={ficha?.fecha_receta ?? ''} />
             </div>

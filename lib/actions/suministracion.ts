@@ -71,6 +71,7 @@ export async function crearEntrega(formData: FormData) {
     socio_id: socioId,
     lote_id: str(formData, 'lote_id'),
     cantidad_g: num(formData, 'cantidad_g'),
+    destino: str(formData, 'destino'),
     responsable_entrega: profile?.id ?? null,
     solicitud_id: str(formData, 'solicitud_id'),
     observaciones: str(formData, 'observaciones'),

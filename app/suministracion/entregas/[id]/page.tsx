@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
 import SignaturePad from '@/components/SignaturePad';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 
 export default async function EntregaDetallePage({ params }: { params: { id: string } }) {
   await requireStaff();
@@ -20,12 +21,17 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-brand mb-1">Entrega {entrega.codigo}</h1>
-        <p className="text-sm text-neutral-500">
-          {(entrega.socio as any)?.cus} — {(entrega.socio as any)?.nombre_completo} ·{' '}
-          {new Date(entrega.fecha_hora).toLocaleString('es-CL')}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-brand mb-1">Entrega {entrega.codigo}</h1>
+          <p className="text-sm text-neutral-500">
+            {(entrega.socio as any)?.cus} — {(entrega.socio as any)?.nombre_completo} ·{' '}
+            {new Date(entrega.fecha_hora).toLocaleString('es-CL')}
+          </p>
+        </div>
+        <Link href={`/suministracion/entregas/${entrega.id}/rotulo`} className="btn-secondary text-sm whitespace-nowrap">
+          Ver rótulo de transporte
+        </Link>
       </div>
 
       <div className="card p-5 text-sm space-y-1">

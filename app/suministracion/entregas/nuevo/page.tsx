@@ -11,7 +11,7 @@ export default async function NuevaEntregaPage({
   const supabase = createClient();
 
   const [{ data: socios }, { data: lotes }, solicitudRes] = await Promise.all([
-    supabase.from('socios').select('id, cus, nombre_completo').eq('estado', 'activo').order('cus'),
+    supabase.from('socios').select('id, cus, nombre_completo, direccion').eq('estado', 'activo').order('cus'),
     supabase.from('lotes').select('id, codigo').order('codigo', { ascending: false }),
     searchParams?.solicitud
       ? supabase.from('solicitudes_suministro').select('id, socio_id, cantidad_solicitada_g').eq('id', searchParams.solicitud).single()
@@ -66,6 +66,19 @@ export default async function NuevaEntregaPage({
               defaultValue={solicitud?.cantidad_solicitada_g ?? ''}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="label" htmlFor="destino">Destino del envío</label>
+          <input
+            className="input"
+            id="destino"
+            name="destino"
+            placeholder="Dirección donde se transportará"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            Se usa en el rótulo de transporte exigido por el Manual Interno.
+          </p>
         </div>
 
         <div>

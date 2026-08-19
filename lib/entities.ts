@@ -39,11 +39,14 @@ export interface EntityDef {
   orderBy?: string;
   /** Columna que guarda quién ejecutó el registro. null = la tabla no tiene ese campo. */
   responsableColumn?: string | null;
+  /** Si es true, al guardar el registro se ofrece confirmar el ingreso del día al área de cultivo. */
+  implicaIngreso?: boolean;
 }
 
 export const ENTITIES: EntityDef[] = [
   {
     slug: 'riego',
+    implicaIngreso: true,
     table: 'registros_riego',
     label: 'Registro de Riego',
     manualRef: 'Manual 5.7 / 5.8 / 6.9',
@@ -59,6 +62,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'fertilizacion',
+    implicaIngreso: true,
     table: 'registros_fertilizacion',
     label: 'Registro de Fertilización',
     manualRef: 'Manual 5.7',
@@ -75,6 +79,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'fitosanitario',
+    implicaIngreso: true,
     table: 'registros_fitosanitario',
     label: 'Manejo Fitosanitario',
     manualRef: 'Manual 6.11',
@@ -91,6 +96,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'manejo-agricola',
+    implicaIngreso: true,
     table: 'registros_manejo_agricola',
     label: 'Manejo Agrícola General',
     manualRef: 'Manual 6.8',
@@ -105,6 +111,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'ambiental',
+    implicaIngreso: true,
     table: 'registros_ambiental',
     label: 'Registro Ambiental',
     manualRef: 'Manual 5.8',
@@ -124,6 +131,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'cosecha',
+    implicaIngreso: true,
     table: 'registros_cosecha',
     label: 'Registro de Cosecha',
     manualRef: 'Manual 5.9 / 6.12',
@@ -139,6 +147,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'secado',
+    implicaIngreso: true,
     table: 'registros_secado',
     label: 'Registro de Secado',
     manualRef: 'Manual 5.10 / 6.13',
@@ -156,6 +165,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'curado',
+    implicaIngreso: true,
     table: 'registros_curado',
     label: 'Registro de Curado',
     manualRef: 'Manual 5.11 / 6.13',
@@ -217,6 +227,7 @@ export const ENTITIES: EntityDef[] = [
   },
   {
     slug: 'eliminacion-material',
+    implicaIngreso: true,
     table: 'eliminacion_material',
     label: 'Eliminación de Material Vegetal',
     manualRef: 'Manual 6.16',

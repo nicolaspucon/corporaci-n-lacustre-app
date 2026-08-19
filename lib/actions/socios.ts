@@ -49,6 +49,7 @@ export async function guardarFichaPerfil(formData: FormData) {
     diagnostico_principal: str(formData, 'diagnostico_principal'),
     medico_tratante: str(formData, 'medico_tratante'),
     especialidad: str(formData, 'especialidad'),
+    numero_receta: str(formData, 'numero_receta'),
     fecha_receta: str(formData, 'fecha_receta'),
     vigencia_receta: str(formData, 'vigencia_receta'),
     duracion_tratamiento: str(formData, 'duracion_tratamiento'),

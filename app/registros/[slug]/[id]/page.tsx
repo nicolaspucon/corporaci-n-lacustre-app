@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
 import { getEntity, getResponsableColumn } from '@/lib/entities';
-import { eliminarRegistro } from '@/lib/actions/registros';
+import { eliminarRegistro, confirmarIngreso } from '@/lib/actions/registros';
 import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import SignaturePad from '@/components/SignaturePad';
 import { notFound } from 'next/navigation';
@@ -26,7 +26,11 @@ export default async function RegistroDetallePage({
   if (responsableCol) relations.push(`resp_join:profiles!${responsableCol}(nombre_completo)`);
   const selectStr = ['*', ...relations].join(', ');
 
-  const [{ data: registro }, { data: firmas }] = await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: registro }, { data: firmas }, { data: visitaHoy }] = await Promise.all([
     supabase.from(entity.table).select(selectStr).eq('id', params.id).maybeSingle(),
     supabase
       .from('firmas')
@@ -35,6 +39,14 @@ export default async function RegistroDetallePage({
       .eq('referencia_id', params.id)
       .order('created_at', { ascending: false })
       .limit(1),
+    entity.implicaIngreso && user
+      ? supabase
+          .from('registro_ingreso_visitas')
+          .select('id')
+          .eq('autorizado_por', user.id)
+          .eq('fecha', new Date().toISOString().slice(0, 10))
+          .limit(1)
+      : Promise.resolve({ data: null as any[] | null }),
   ]);
 
   if (!registro) notFound();
@@ -115,6 +127,28 @@ export default async function RegistroDetallePage({
           />
         )}
       </div>
+
+      {entity.implicaIngreso && (!visitaHoy || visitaHoy.length === 0) && (
+        <div className="card p-6">
+          <h2 className="font-semibold text-brand mb-2">¿Registrar tu ingreso de hoy?</h2>
+          <p className="text-sm text-neutral-500 mb-3">
+            Este registro implica que ingresaste al área de cultivo. Confirma para dejarlo también
+            en el Registro de Ingreso y Visitas (Manual 10.4).
+          </p>
+          <form action={confirmarIngreso} className="flex items-center gap-3">
+            <input type="hidden" name="__slug" value={entity.slug} />
+            <input type="hidden" name="__return" value={`/registros/${entity.slug}/${params.id}`} />
+            <input
+              className="input flex-1"
+              name="motivo"
+              defaultValue={`Registro agrícola: ${entity.label}`}
+            />
+            <button type="submit" className="btn-primary whitespace-nowrap">
+              Confirmar ingreso
+            </button>
+          </form>
+        </div>
+      )}
 
       <form action={eliminarRegistro} className="pt-2">
         <input type="hidden" name="__slug" value={entity.slug} />

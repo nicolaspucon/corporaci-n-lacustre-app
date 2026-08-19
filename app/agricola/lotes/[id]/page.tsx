@@ -12,7 +12,13 @@ function addDays(dateStr: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export default async function LoteDetallePage({ params }: { params: { id: string } }) {
+export default async function LoteDetallePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { plantas_creadas?: string };
+}) {
   await requireStaff();
   const supabase = createClient();
 
@@ -38,6 +44,11 @@ export default async function LoteDetallePage({ params }: { params: { id: string
 
   return (
     <div className="space-y-8 max-w-4xl">
+      {searchParams?.plantas_creadas && (
+        <p className="text-sm text-brand bg-brand-pale rounded px-3 py-2">
+          Se generaron automáticamente {searchParams.plantas_creadas} fichas de planta para este lote.
+        </p>
+      )}
       <div>
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-xl font-bold text-brand">Lote {lote.codigo}</h1>

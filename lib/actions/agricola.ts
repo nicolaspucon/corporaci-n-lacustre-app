@@ -39,9 +39,21 @@ export async function crearLote(formData: FormData) {
     redirect('/agricola/lotes/nuevo?error=' + encodeURIComponent(error.message));
   }
 
+  // Genera automáticamente una ficha de planta (CP-) por cada planta indicada en el
+  // lote, ya que esa cantidad es la información que se necesita para crearlas.
+  if (payload.n_plantas && payload.n_plantas > 0) {
+    const nuevasPlantas = Array.from({ length: payload.n_plantas }, () => ({
+      lote_id: data!.id,
+      fecha_germinacion: fecha_inicio,
+      estado_sanitario: 'sano',
+    }));
+    await supabase.from('plantas').insert(nuevasPlantas);
+  }
+
   revalidatePath('/agricola/lotes');
+  revalidatePath('/agricola/plantas');
   revalidatePath('/agricola/planificacion');
-  redirect(`/agricola/lotes/${data!.id}`);
+  redirect(`/agricola/lotes/${data!.id}${payload.n_plantas ? '?plantas_creadas=' + payload.n_plantas : ''}`);
 }
 
 export async function actualizarEstadoLote(formData: FormData) {
