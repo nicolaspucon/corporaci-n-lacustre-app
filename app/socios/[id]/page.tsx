@@ -1,13 +1,20 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { guardarFichaPerfil, actualizarEstadoSocio } from '@/lib/actions/socios';
+import { guardarFichaPerfil, actualizarEstadoSocio, eliminarSocio } from '@/lib/actions/socios';
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import FileUpload from '@/components/FileUpload';
 import SignaturePad from '@/components/SignaturePad';
 import { notFound } from 'next/navigation';
 
 const ESTADOS = ['activo', 'suspendido', 'renunciado', 'excluido'];
 
-export default async function SocioDetallePage({ params }: { params: { id: string } }) {
+export default async function SocioDetallePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { error?: string };
+}) {
   await requireStaff();
   const supabase = createClient();
 
@@ -33,23 +40,39 @@ export default async function SocioDetallePage({ params }: { params: { id: strin
   return (
     <div className="space-y-8 max-w-4xl">
       <div>
+        {searchParams?.error && (
+          <p className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+            {searchParams.error}
+          </p>
+        )}
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-xl font-bold text-brand">
             {socio.nombre_completo} <span className="text-neutral-400 font-normal">— {socio.cus}</span>
           </h1>
-          <form action={actualizarEstadoSocio} className="flex items-center gap-2">
-            <input type="hidden" name="socio_id" value={socio.id} />
-            <select name="estado" defaultValue={socio.estado} className="input py-1 text-sm w-auto">
-              {ESTADOS.map((e) => (
-                <option key={e} value={e} className="capitalize">
-                  {e}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className="btn-secondary text-sm">
-              Actualizar estado
-            </button>
-          </form>
+          <div className="flex items-center gap-3">
+            <form action={actualizarEstadoSocio} className="flex items-center gap-2">
+              <input type="hidden" name="socio_id" value={socio.id} />
+              <select name="estado" defaultValue={socio.estado} className="input py-1 text-sm w-auto">
+                {ESTADOS.map((e) => (
+                  <option key={e} value={e} className="capitalize">
+                    {e}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" className="btn-secondary text-sm">
+                Actualizar estado
+              </button>
+            </form>
+            <form action={eliminarSocio}>
+              <input type="hidden" name="id" value={socio.id} />
+              <ConfirmSubmitButton
+                confirmText={`¿Eliminar a "${socio.nombre_completo}" (${socio.cus})? Esta acción no se puede deshacer.`}
+                className="text-sm text-red-600 hover:underline"
+              >
+                Eliminar socio
+              </ConfirmSubmitButton>
+            </form>
+          </div>
         </div>
         <p className="text-sm text-neutral-500">
           RUT: {socio.rut ?? '—'} · Categoría: {socio.categoria} · Ingreso: {socio.fecha_ingreso}

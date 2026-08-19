@@ -82,3 +82,50 @@ export async function crearUsuario(
     success: `Usuario creado. Correo: ${email} — Contraseña temporal: ${password} (guárdala y compártesela de forma segura; pídele que la cambie apenas entre).`,
   };
 }
+
+
+export type EliminarUsuarioState = {
+  error?: string;
+};
+
+export async function eliminarUsuario(
+  _prevState: EliminarUsuarioState,
+  formData: FormData
+): Promise<EliminarUsuarioState> {
+  const actor = await requireAdmin();
+
+  const id = String(formData.get('id') || '').trim();
+  if (!id) {
+    return { error: 'Falta el identificador del usuario.' };
+  }
+
+  if (id === actor.id) {
+    return { error: 'No puedes eliminar tu propio usuario mientras estás conectado con él.' };
+  }
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e: any) {
+    return { error: e.message || 'No está configurada la clave de administrador en el servidor.' };
+  }
+
+  // auth.users -> profiles tiene "on delete cascade", así que basta con eliminar
+  // el usuario de Auth. Si el usuario creó otros registros (socios, documentos, etc.)
+  // Postgres rechazará el borrado con un error de llave foránea, que capturamos abajo.
+  const { error } = await admin.auth.admin.deleteUser(id);
+
+  if (error) {
+    const msg = error.message || '';
+    if (msg.toLowerCase().includes('foreign key') || msg.toLowerCase().includes('violat')) {
+      return {
+        error:
+          'No se puede eliminar: este usuario ya tiene registros creados en el sistema (socios, documentos, etc.) y deben conservarse. No hay otra opción por ahora salvo dejar el usuario como está.',
+      };
+    }
+    return { error: msg || 'No se pudo eliminar el usuario.' };
+  }
+
+  revalidatePath('/admin/usuarios');
+  return {};
+}

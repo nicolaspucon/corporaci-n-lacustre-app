@@ -1,6 +1,7 @@
 import { requireAdmin, ROL_LABELS, type Rol } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import UsuarioForm from '@/components/admin/UsuarioForm';
+import DeleteUsuarioButton from '@/components/admin/DeleteUsuarioButton';
 
 export default async function UsuariosPage() {
   await requireAdmin();
@@ -35,17 +36,20 @@ export default async function UsuariosPage() {
             {(profiles ?? []).map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between border-b border-neutral-100 pb-2 text-sm"
+                className="flex items-center justify-between border-b border-neutral-100 pb-2 text-sm gap-3"
               >
                 <div>
                   <p className="font-medium">{p.nombre_completo}</p>
                   <p className="text-neutral-500">{ROL_LABELS[p.rol as Rol] ?? p.rol}</p>
                 </div>
-                {!p.activo && (
-                  <span className="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded">
-                    Inactivo
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {!p.activo && (
+                    <span className="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                      Inactivo
+                    </span>
+                  )}
+                  <DeleteUsuarioButton id={p.id} nombre={p.nombre_completo} />
+                </div>
               </div>
             ))}
             {(profiles ?? []).length === 0 && (

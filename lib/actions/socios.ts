@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { requireStaff } from '@/lib/auth';
 
 export async function createSocio(formData: FormData) {
   const supabase = createClient();
@@ -81,4 +82,32 @@ function str(formData: FormData, key: string) {
 function num(formData: FormData, key: string) {
   const v = formData.get(key);
   return v === null || v === '' ? null : Number(v);
+}
+
+
+export async function eliminarSocio(formData: FormData) {
+  await requireStaff();
+  const supabase = createClient();
+  const id = String(formData.get('id') || '');
+
+  if (!id) {
+    redirect('/socios?error=' + encodeURIComponent('Falta el identificador del socio.'));
+  }
+
+  const { error } = await supabase.from('socios').delete().eq('id', id);
+
+  if (error) {
+    if (error.code === '23503') {
+      redirect(
+        `/socios/${id}?error=` +
+          encodeURIComponent(
+            'No se puede eliminar: este socio ya tiene registros asociados (documentos, solicitudes, usuario vinculado, etc.). Si ya no participa, cambia su estado a "Renunciado" o "Excluido" en lugar de eliminarlo.'
+          )
+      );
+    }
+    redirect(`/socios/${id}?error=` + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/socios');
+  redirect('/socios');
 }
