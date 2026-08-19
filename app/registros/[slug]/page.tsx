@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { getEntity, getResponsableColumn, ENTITIES } from '@/lib/entities';
+import { calcularPlantasActivas } from '@/lib/plantasActivas';
 import DataTable from '@/components/DataTable';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -51,6 +52,9 @@ export default async function RegistroListPage({ params }: { params: { slug: str
     { key: '_firmado', label: 'Firmado' },
   ];
 
+  const resumenPlantasActivas =
+    entity.slug === 'plantas-activas' ? await calcularPlantasActivas(supabase) : null;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -70,6 +74,42 @@ export default async function RegistroListPage({ params }: { params: { slug: str
         <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
           {error.message}
         </p>
+      )}
+
+      {resumenPlantasActivas && (
+        <div className="card p-5 mb-6">
+          <h2 className="font-semibold text-brand mb-1">Conteo automático — ahora mismo</h2>
+          <p className="text-xs text-neutral-500 mb-4">
+            Calculado solo a partir de lotes, madres y esquejes existentes (no requiere contar a mano). Al
+            crear un nuevo registro, estos valores se prellenan automáticamente.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-md border border-neutral-200 p-4">
+              <p className="text-2xl font-bold text-brand">{resumenPlantasActivas.enraizado.total}</p>
+              <p className="text-xs text-neutral-500 mt-1">
+                Enraizado ({resumenPlantasActivas.enraizado.esquejes} esquejes + {resumenPlantasActivas.enraizado.germinacionLotes} germinación)
+              </p>
+            </div>
+            <div className="rounded-md border border-neutral-200 p-4">
+              <p className="text-2xl font-bold text-brand">{resumenPlantasActivas.crecimiento.total}</p>
+              <p className="text-xs text-neutral-500 mt-1">
+                Crecimiento ({resumenPlantasActivas.crecimiento.madres} madres + {resumenPlantasActivas.crecimiento.lotes} vegetación)
+              </p>
+            </div>
+            <div className="rounded-md border border-neutral-200 p-4">
+              <p className="text-2xl font-bold text-brand">{resumenPlantasActivas.floracion.total}</p>
+              <p className="text-xs text-neutral-500 mt-1">Floración</p>
+            </div>
+            <div className="rounded-md border border-brand bg-brand-pale p-4">
+              <p className="text-2xl font-bold text-brand">{resumenPlantasActivas.totalActivas}</p>
+              <p className="text-xs text-neutral-500 mt-1">Total plantas activas</p>
+            </div>
+          </div>
+          <div className="flex gap-6 mt-4 pt-3 border-t border-neutral-100 text-xs text-neutral-500">
+            <span>Cosechadas / en procesado (acumulado): <strong className="text-neutral-700">{resumenPlantasActivas.procesadoAcumulado}</strong></span>
+            <span>Mermas de esquejes (acumulado): <strong className="text-neutral-700">{resumenPlantasActivas.mermasAcumuladas}</strong></span>
+          </div>
+        </div>
       )}
 
       <DataTable

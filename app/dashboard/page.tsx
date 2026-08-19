@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
+import { calcularPlantasActivas } from '@/lib/plantasActivas';
 import Link from 'next/link';
 
 export default async function DashboardPage() {
@@ -10,17 +11,19 @@ export default async function DashboardPage() {
     return <PanelSocio profile={profile} />;
   }
 
-  const [{ count: socios }, { count: lotes }, { count: incidentesAbiertos }, { count: solicitudesPendientes }] =
+  const [{ count: socios }, { count: lotes }, { count: incidentesAbiertos }, { count: solicitudesPendientes }, resumenPlantas] =
     await Promise.all([
       supabase.from('socios').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
       supabase.from('lotes').select('*', { count: 'exact', head: true }).not('estado', 'in', '(cerrado)'),
       supabase.from('incidentes').select('*', { count: 'exact', head: true }).neq('estado', 'cerrado'),
       supabase.from('solicitudes_suministro').select('*', { count: 'exact', head: true }).eq('resolucion', 'pendiente'),
+      calcularPlantasActivas(supabase),
     ]);
 
   const stats = [
     { label: 'Socios activos', value: socios ?? 0, href: '/socios' },
     { label: 'Lotes en curso', value: lotes ?? 0, href: '/agricola/lotes' },
+    { label: 'Plantas activas', value: resumenPlantas.totalActivas, href: '/registros/plantas-activas' },
     { label: 'Incidentes abiertos', value: incidentesAbiertos ?? 0, href: '/registros/incidentes' },
     { label: 'Solicitudes pendientes', value: solicitudesPendientes ?? 0, href: '/suministracion/solicitudes' },
   ];
@@ -29,7 +32,7 @@ export default async function DashboardPage() {
     <div>
       <h1 className="text-xl font-bold text-brand mb-1">Panel general</h1>
       <p className="text-neutral-500 mb-6">Corporación de Usuarios Medicinales de Cannabis Zona Lacustre.</p>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {stats.map((s) => (
           <Link key={s.label} href={s.href} className="card p-5 hover:border-brand">
             <p className="text-3xl font-bold text-brand">{s.value}</p>

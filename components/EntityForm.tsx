@@ -11,11 +11,13 @@ export default function EntityForm({
   loteOptions,
   plantaOptions,
   error,
+  defaults,
 }: {
   entity: EntityDef;
   loteOptions?: RelationOption[];
   plantaOptions?: RelationOption[];
   error?: string;
+  defaults?: Record<string, unknown>;
 }) {
   const tieneFaseFinal = entity.fields.some((f) => f.faseFinal);
 
@@ -109,7 +111,17 @@ export default function EntityForm({
               type={field.type}
               step={field.type === 'number' ? 'any' : undefined}
               required={field.required}
+              defaultValue={
+                defaults?.[field.key] !== undefined && defaults?.[field.key] !== null
+                  ? String(defaults[field.key])
+                  : (field.type === 'date' && field.key === 'fecha'
+                      ? new Date().toISOString().slice(0, 10)
+                      : undefined)
+              }
             />
+          )}
+          {field.type === 'number' && defaults?.[field.key] !== undefined && (
+            <p className="text-xs text-neutral-400 mt-1">Prellenado automáticamente. Puedes ajustarlo si es necesario.</p>
           )}
         </div>
       ))}
