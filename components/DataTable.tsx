@@ -9,10 +9,12 @@ export default function DataTable({
   columns,
   rows,
   emptyLabel = 'Sin registros todavía.',
+  linkTo,
 }: {
   columns: Column[];
   rows: Record<string, any>[];
   emptyLabel?: string;
+  linkTo?: (row: Record<string, any>) => string;
 }) {
   if (!rows || rows.length === 0) {
     return (
@@ -28,6 +30,7 @@ export default function DataTable({
             {columns.map((c) => (
               <th key={c.key}>{c.label}</th>
             ))}
+            {linkTo && <th></th>}
           </tr>
         </thead>
         <tbody>
@@ -36,6 +39,13 @@ export default function DataTable({
               {columns.map((c) => (
                 <td key={c.key}>{formatCell(row[c.key])}</td>
               ))}
+              {linkTo && (
+                <td>
+                  <Link href={linkTo(row)} className="text-brand underline text-sm">
+                    Ver
+                  </Link>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -73,6 +73,23 @@ export default function EntityForm({
             <input className="h-4 w-4" id={field.key} name={field.key} type="checkbox" />
           )}
 
+          {field.type === 'photo' && (
+            <>
+              <input
+                className="input"
+                id={field.key}
+                name={field.key}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                required={field.required}
+              />
+              <p className="text-xs text-neutral-400 mt-1">
+                En el celular esto abre la cámara para tomar la foto en el momento.
+              </p>
+            </>
+          )}
+
           {['text', 'number', 'date', 'time', 'datetime-local'].includes(field.type) && (
             <input
               className="input"

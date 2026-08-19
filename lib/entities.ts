@@ -19,7 +19,8 @@ export type FieldType =
   | 'boolean'
   | 'select'
   | 'lote'
-  | 'planta';
+  | 'planta'
+  | 'photo';
 
 export interface FieldDef {
   key: string;
@@ -228,6 +229,7 @@ export const ENTITIES: EntityDef[] = [
       { key: 'metodo', label: 'Método empleado', type: 'text' },
       { key: 'n_acta', label: 'N.º de acta', type: 'text' },
       { key: 'autorizado_por', label: 'Autorizado por (Dirección Técnica)', type: 'text' },
+      { key: 'foto', label: 'Fotografía de respaldo', type: 'photo' },
     ],
   },
   {
@@ -294,4 +296,15 @@ export const ENTITIES: EntityDef[] = [
 
 export function getEntity(slug: string): EntityDef | undefined {
   return ENTITIES.find((e) => e.slug === slug);
+}
+
+/**
+ * Columna que guarda quién hizo el registro. Por defecto es 'responsable'
+ * (así se llama en casi todas las tablas de registro). Algunas entidades
+ * la renombran (visitas -> autorizado_por, incidentes -> responsable_reporte)
+ * y una la desactiva explícitamente (plantas-activas -> null).
+ */
+export function getResponsableColumn(entity: EntityDef): string | null {
+  if (entity.responsableColumn === undefined) return 'responsable';
+  return entity.responsableColumn;
 }
