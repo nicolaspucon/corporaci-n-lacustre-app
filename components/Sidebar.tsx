@@ -16,6 +16,7 @@ const STAFF: Rol[] = ['admin', 'directorio', 'secretaria', 'direccion_tecnica'];
 export default function Sidebar({ profile }: { profile: any }) {
   const isStaff = STAFF.includes(profile.rol);
   const isSocio = profile.rol === 'socio';
+  const isAdmin = profile.rol === 'admin';
 
   return (
     <aside className="w-64 shrink-0 bg-brand text-white flex flex-col min-h-screen">
@@ -68,6 +69,12 @@ export default function Sidebar({ profile }: { profile: any }) {
               <NavLink href="/documentos" label="Repositorio de documentos" />
               <NavLink href="/fiscalizacion" label="Generar expediente" />
             </NavGroup>
+
+            {isAdmin && (
+              <NavGroup label="Administración">
+                <NavLink href="/admin/usuarios" label="Usuarios" />
+              </NavGroup>
+            )}
           </>
         )}
 

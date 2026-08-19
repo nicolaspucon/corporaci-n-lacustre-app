@@ -27,6 +27,14 @@ export async function requireStaff() {
   return profile;
 }
 
+export async function requireAdmin() {
+  const profile = await getSessionProfile();
+  if (!profile || profile.rol !== 'admin') {
+    redirect('/dashboard');
+  }
+  return profile;
+}
+
 export const ROL_LABELS: Record<Rol, string> = {
   admin: 'Administrador/a',
   directorio: 'Directorio',

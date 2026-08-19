@@ -80,7 +80,21 @@ insert into profiles (id, nombre_completo, rol, socio_id)
 values ('EL-UUID-DEL-USUARIO', 'Nombre Apellido', 'socio', 'el-id-del-registro-en-la-tabla-socios');
 ```
 
-## 6. Subir el código a GitHub
+## 6. Habilitar la creación de usuarios desde la app (opcional pero recomendado)
+
+Existe una sección **Usuarios** (visible solo para el rol `admin`) que permite crear el acceso
+de nuevos socios o equipo técnico/directivo con un formulario, sin tocar Supabase manualmente.
+Para activarla necesitas agregar una tercera variable de entorno:
+
+1. En Supabase: **Project Settings → API → API Keys**, busca la clave **service_role** (bajo
+   "Claves secretas" / "Secret keys" — distinta de la "anon public key"). Cópiala.
+2. Agrégala como variable de entorno **SUPABASE_SERVICE_ROLE_KEY** junto a las otras dos, tanto en
+   `.env.local` (para desarrollo local) como en Vercel (paso 7).
+
+⚠️ Esta clave tiene permisos totales sobre la base de datos — solo se usa del lado del servidor,
+nunca debe llevar el prefijo `NEXT_PUBLIC_`, y no debe compartirse ni pegarse en ningún chat.
+
+## 7. Subir el código a GitHub
 
 ```bash
 cd corporacion-app
@@ -94,7 +108,7 @@ git push -u origin main
 
 (Crea antes el repositorio vacío en GitHub, sin README ni .gitignore, para evitar conflictos.)
 
-## 7. Desplegar en Vercel
+## 8. Desplegar en Vercel
 
 1. Entra a [vercel.com](https://vercel.com) → **Add New → Project** → importa el repositorio recién subido.
 2. En **Environment Variables**, agrega las mismas dos variables de `.env.local`:
@@ -103,7 +117,7 @@ git push -u origin main
 3. Presiona **Deploy**.
 4. Si el build falla, revisa el log de errores de Vercel (suele mostrar exactamente la línea con el problema) y pégamelo para corregirlo.
 
-## 8. Después del primer despliegue
+## 9. Después del primer despliegue
 
 - Cada `git push` a `main` vuelve a desplegar automáticamente.
 - Los buckets `documentos` y `firmas` de Storage son privados: solo usuarios autenticados pueden leer/escribir, y las URLs de descarga que genera la app son firmadas y expiran en 1 hora.
@@ -149,6 +163,7 @@ supabase/
 - **Transporte**: traslados internos/externos (código TR-) con registro de documentos exigidos al transportista, según el Protocolo de Transporte (Manual 7.17–7.23).
 - **Documentos**: repositorio central filtrable, con aviso de documentos vencidos o por vencer.
 - **Fiscalización**: resumen general del estado de la Corporación, expediente compilado por socio y por lote, listos para imprimir/exportar a PDF ante una inspección.
+- **Usuarios** (solo rol `admin`): creación de accesos para nuevos socios o equipo técnico/directivo directamente desde la app, sin usar Supabase manualmente.
 
 ## Próximos pasos sugeridos (no incluidos en esta primera entrega)
 
