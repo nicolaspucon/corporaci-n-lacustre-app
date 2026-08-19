@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { getSessionProfile } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
@@ -11,6 +12,20 @@ function str(formData: FormData, key: string) {
 function num(formData: FormData, key: string) {
   const v = formData.get(key);
   return v === null || v === '' ? null : Number(v);
+}
+function addDays(dateStr: string, days: number) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function calcularFechaCosecha(
+  fechaInicio: string,
+  semGerminacion: number | null,
+  semVegetacion: number | null,
+  semFloracion: number | null
+) {
+  const semanas = (semGerminacion ?? 0) + (semVegetacion ?? 0) + (semFloracion ?? 0);
+  return addDays(fechaInicio, semanas * 7);
 }
 
 export async function crearLote(formData: FormData) {
@@ -40,11 +55,21 @@ export async function crearLote(formData: FormData) {
   }
 
   // Genera automáticamente una ficha de planta (CP-) por cada planta indicada en el
-  // lote, ya que esa cantidad es la información que se necesita para crearlas.
+  // lote, con variedad, fecha de cosecha estimada y producción esperada ya prellenadas,
+  // ya que esa información se conoce desde que se crea el lote.
   if (payload.n_plantas && payload.n_plantas > 0) {
+    const fechaCosecha = calcularFechaCosecha(
+      fecha_inicio!,
+      payload.sem_germinacion,
+      payload.sem_vegetacion,
+      payload.sem_floracion
+    );
     const nuevasPlantas = Array.from({ length: payload.n_plantas }, () => ({
       lote_id: data!.id,
+      variedad: payload.cultivo_genetica,
       fecha_germinacion: fecha_inicio,
+      fecha_cosecha: fechaCosecha,
+      produccion_esperada_g: payload.rendimiento_esperado_planta,
       estado_sanitario: 'sano',
     }));
     await supabase.from('plantas').insert(nuevasPlantas);
@@ -106,4 +131,168 @@ export async function actualizarPlanta(formData: FormData) {
   await supabase.from('plantas').update(patch).eq('id', id);
   revalidatePath(`/agricola/plantas/${id}`);
   revalidatePath('/agricola/plantas');
+}
+
+// ---------------------------------------------------------------------
+// Madres
+// ---------------------------------------------------------------------
+
+export async function crearMadre(formData: FormData) {
+  const supabase = createClient();
+  const profile = await getSessionProfile();
+
+  const variedad = str(formData, 'variedad');
+  if (!variedad) {
+    redirect('/agricola/madres/nuevo?error=' + encodeURIComponent('La variedad es obligatoria.'));
+  }
+
+  const payload = {
+    variedad,
+    fecha_inicio: str(formData, 'fecha_inicio') ?? new Date().toISOString().slice(0, 10),
+    ubicacion: str(formData, 'ubicacion'),
+    observaciones: str(formData, 'observaciones'),
+    responsable: profile?.id ?? null,
+  };
+
+  const { data, error } = await supabase.from('plantas_madre').insert(payload).select('id').single();
+  if (error) {
+    redirect('/agricola/madres/nuevo?error=' + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/agricola/madres');
+  redirect(`/agricola/madres/${data!.id}`);
+}
+
+export async function actualizarEstadoMadre(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('madre_id'));
+  const estado = String(formData.get('estado'));
+  await supabase.from('plantas_madre').update({ estado }).eq('id', id);
+  revalidatePath(`/agricola/madres/${id}`);
+  revalidatePath('/agricola/madres');
+}
+
+// ---------------------------------------------------------------------
+// Esquejes (propagación)
+// ---------------------------------------------------------------------
+
+export async function crearEsqueje(formData: FormData) {
+  const supabase = createClient();
+  const profile = await getSessionProfile();
+
+  const variedad = str(formData, 'variedad');
+  const cantidad_realizados = num(formData, 'cantidad_realizados');
+  if (!variedad || !cantidad_realizados) {
+    redirect(
+      '/agricola/esquejes/nuevo?error=' + encodeURIComponent('Variedad y cantidad de esquejes son obligatorios.')
+    );
+  }
+
+  const payload = {
+    madre_id: str(formData, 'madre_id'),
+    variedad,
+    fecha: str(formData, 'fecha') ?? new Date().toISOString().slice(0, 10),
+    cantidad_realizados,
+    observaciones: str(formData, 'observaciones'),
+    responsable: profile?.id ?? null,
+  };
+
+  const { data, error } = await supabase.from('esquejes').insert(payload).select('id').single();
+  if (error) {
+    redirect('/agricola/esquejes/nuevo?error=' + encodeURIComponent(error.message));
+  }
+
+  revalidatePath('/agricola/esquejes');
+  redirect(`/agricola/esquejes/${data!.id}`);
+}
+
+export async function actualizarResultadoEsqueje(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get('esqueje_id'));
+  const cantidad_enraizadas = num(formData, 'cantidad_enraizadas');
+
+  const { data: esqueje } = await supabase.from('esquejes').select('cantidad_realizados').eq('id', id).single();
+  if (!esqueje) redirect('/agricola/esquejes');
+
+  if (cantidad_enraizadas === null || cantidad_enraizadas < 0 || cantidad_enraizadas > esqueje!.cantidad_realizados) {
+    redirect(
+      `/agricola/esquejes/${id}?error=` +
+        encodeURIComponent('La cantidad enraizada debe ser un número válido entre 0 y el total realizado.')
+    );
+  }
+
+  const cantidad_perdidas = esqueje!.cantidad_realizados - cantidad_enraizadas!;
+
+  await supabase
+    .from('esquejes')
+    .update({
+      cantidad_enraizadas,
+      cantidad_perdidas,
+      estado: cantidad_enraizadas! > 0 ? 'listo' : 'descartado',
+    })
+    .eq('id', id);
+
+  revalidatePath(`/agricola/esquejes/${id}`);
+  revalidatePath('/agricola/esquejes');
+}
+
+export async function promoverEsquejeALote(formData: FormData) {
+  const supabase = createClient();
+  const esquejeId = String(formData.get('esqueje_id'));
+
+  const { data: esqueje } = await supabase.from('esquejes').select('*').eq('id', esquejeId).single();
+  if (!esqueje) redirect('/agricola/esquejes');
+
+  if (!esqueje!.cantidad_enraizadas || esqueje!.cantidad_enraizadas <= 0) {
+    redirect(
+      `/agricola/esquejes/${esquejeId}?error=` +
+        encodeURIComponent('Registra primero cuántos esquejes enraizaron sanos antes de pasarlos a vegetación.')
+    );
+  }
+
+  const fecha_inicio = str(formData, 'fecha_inicio') ?? new Date().toISOString().slice(0, 10);
+  const sem_germinacion = num(formData, 'sem_germinacion') ?? 0;
+  const sem_vegetacion = num(formData, 'sem_vegetacion') ?? 5;
+  const sem_floracion = num(formData, 'sem_floracion') ?? 11;
+  const sem_cosecha = num(formData, 'sem_cosecha') ?? 1;
+  const rendimiento_esperado_m2 = num(formData, 'rendimiento_esperado_m2');
+  const rendimiento_esperado_planta = num(formData, 'rendimiento_esperado_planta');
+
+  const lotePayload = {
+    fecha_inicio,
+    area_m2: num(formData, 'area_m2'),
+    cultivo_genetica: esqueje!.variedad,
+    n_plantas: esqueje!.cantidad_enraizadas,
+    sem_germinacion,
+    sem_vegetacion,
+    sem_floracion,
+    sem_cosecha,
+    rendimiento_esperado_m2,
+    rendimiento_esperado_planta,
+    origen_esqueje_id: esqueje!.id,
+  };
+
+  const { data: lote, error } = await supabase.from('lotes').insert(lotePayload).select('id').single();
+  if (error) {
+    redirect(`/agricola/esquejes/${esquejeId}?error=` + encodeURIComponent(error.message));
+  }
+
+  const fechaCosecha = calcularFechaCosecha(fecha_inicio, sem_germinacion, sem_vegetacion, sem_floracion);
+  const nuevasPlantas = Array.from({ length: esqueje!.cantidad_enraizadas }, () => ({
+    lote_id: lote!.id,
+    variedad: esqueje!.variedad,
+    fecha_germinacion: fecha_inicio,
+    fecha_cosecha: fechaCosecha,
+    produccion_esperada_g: rendimiento_esperado_planta,
+    estado_sanitario: 'sano',
+  }));
+  await supabase.from('plantas').insert(nuevasPlantas);
+
+  await supabase.from('esquejes').update({ estado: 'pasado_a_lote', lote_id: lote!.id }).eq('id', esquejeId);
+
+  revalidatePath('/agricola/lotes');
+  revalidatePath('/agricola/plantas');
+  revalidatePath('/agricola/esquejes');
+  revalidatePath('/agricola/planificacion');
+  redirect(`/agricola/lotes/${lote!.id}?plantas_creadas=${esqueje!.cantidad_enraizadas}`);
 }

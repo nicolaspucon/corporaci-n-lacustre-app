@@ -24,7 +24,7 @@ export default async function LoteDetallePage({
 
   const [{ data: lote }, { data: plantas }] = await Promise.all([
     supabase.from('lotes').select('*').eq('id', params.id).single(),
-    supabase.from('plantas').select('id, codigo, variedad, estado_sanitario, fecha_germinacion, fecha_cosecha').eq('lote_id', params.id).order('codigo'),
+    supabase.from('plantas').select('id, codigo, variedad, estado_sanitario, fecha_germinacion, fecha_cosecha, produccion_esperada_g').eq('lote_id', params.id).order('codigo'),
   ]);
 
   if (!lote) notFound();
@@ -111,13 +111,14 @@ export default async function LoteDetallePage({
                 <th>Estado sanitario</th>
                 <th>Germinación</th>
                 <th>Cosecha</th>
+                <th>Producción esperada</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {(plantas ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center text-neutral-500 py-6">Sin plantas registradas en este lote.</td>
+                  <td colSpan={7} className="text-center text-neutral-500 py-6">Sin plantas registradas en este lote.</td>
                 </tr>
               )}
               {(plantas ?? []).map((p) => (
@@ -127,6 +128,7 @@ export default async function LoteDetallePage({
                   <td>{p.estado_sanitario ?? '—'}</td>
                   <td>{p.fecha_germinacion ?? '—'}</td>
                   <td>{p.fecha_cosecha ?? '—'}</td>
+                  <td>{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</td>
                   <td><Link href={`/agricola/plantas/${p.id}`} className="text-brand underline">Ver</Link></td>
                 </tr>
               ))}

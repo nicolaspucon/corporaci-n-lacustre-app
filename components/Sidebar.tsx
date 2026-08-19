@@ -35,7 +35,12 @@ export default function Sidebar({ profile }: { profile: any }) {
               <NavLink href="/socios/nuevo" label="Nuevo socio" />
             </NavGroup>
 
-            <NavGroup label="Área agrícola">
+            <NavGroup label="Propagación">
+              <NavLink href="/agricola/madres" label="Madres" />
+              <NavLink href="/agricola/esquejes" label="Esquejes" />
+            </NavGroup>
+
+            <NavGroup label="Área agrícola (floración)">
               <NavLink href="/agricola/planificacion" label="Planificación (Gantt)" />
               <NavLink href="/agricola/lotes" label="Lotes" />
               <NavLink href="/agricola/plantas" label="Plantas" />

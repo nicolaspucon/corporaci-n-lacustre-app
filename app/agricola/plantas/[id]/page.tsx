@@ -23,6 +23,9 @@ export default async function PlantaDetallePage({ params }: { params: { id: stri
           Lote: {(planta.lote as any)?.codigo ?? 'sin asignar'} · Origen: {planta.origen ?? '—'} · Variedad: {planta.variedad ?? '—'}
         </p>
         <p className="text-sm text-neutral-500">Fecha de germinación: {planta.fecha_germinacion ?? '—'}</p>
+        <p className="text-sm text-neutral-500">
+          Producción esperada: {planta.produccion_esperada_g ? `${planta.produccion_esperada_g} g` : '—'}
+        </p>
       </div>
 
       <form action={actualizarPlanta} className="card p-6 space-y-4">

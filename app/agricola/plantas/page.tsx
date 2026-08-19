@@ -8,7 +8,7 @@ export default async function PlantasPage() {
 
   const { data, error } = await supabase
     .from('plantas')
-    .select('id, codigo, variedad, estado_sanitario, ubicacion, lote:lotes(codigo)')
+    .select('id, codigo, variedad, estado_sanitario, fecha_cosecha, produccion_esperada_g, ubicacion, lote:lotes(codigo)')
     .order('codigo', { ascending: false })
     .limit(500);
 
@@ -36,6 +36,8 @@ export default async function PlantasPage() {
               <th>Lote</th>
               <th>Variedad</th>
               <th>Estado sanitario</th>
+              <th>Cosecha estimada</th>
+              <th>Producción esperada</th>
               <th>Ubicación</th>
               <th></th>
             </tr>
@@ -43,7 +45,7 @@ export default async function PlantasPage() {
           <tbody>
             {(data ?? []).length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center text-neutral-500 py-8">
+                <td colSpan={8} className="text-center text-neutral-500 py-8">
                   Sin plantas registradas todavía.
                 </td>
               </tr>
@@ -54,6 +56,8 @@ export default async function PlantasPage() {
                 <td>{p.lote?.codigo ?? '—'}</td>
                 <td>{p.variedad ?? '—'}</td>
                 <td>{p.estado_sanitario ?? '—'}</td>
+                <td>{p.fecha_cosecha ?? '—'}</td>
+                <td>{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</td>
                 <td>{p.ubicacion ?? '—'}</td>
                 <td>
                   <Link href={`/agricola/plantas/${p.id}`} className="text-brand underline">
