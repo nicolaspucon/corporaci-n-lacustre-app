@@ -9,18 +9,54 @@ export default async function NuevaSolicitudPage({ searchParams }: { searchParam
   const profile = await getSessionProfile();
   if (!profile) redirect('/login');
   const isStaff = STAFF.includes(profile.rol);
+  const supabase = createClient();
 
   let socios: { id: string; cus: string; nombre_completo: string }[] = [];
   if (isStaff) {
-    const supabase = createClient();
     const { data } = await supabase.from('socios').select('id, cus, nombre_completo').eq('estado', 'activo').order('cus');
     socios = data ?? [];
+  }
+
+  let contextoSocio: { tope: number | null; solicitadoMes: number } | null = null;
+  if (!isStaff && profile.socio_id) {
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    const inicioMesStr = inicioMes.toISOString().slice(0, 10);
+    const [{ data: ficha }, { data: solicitudesMes }] = await Promise.all([
+      supabase
+        .from('fichas_perfil')
+        .select('rango_maximo_g, consumo_mensual_estimado_g')
+        .eq('socio_id', profile.socio_id)
+        .maybeSingle(),
+      supabase
+        .from('solicitudes_suministro')
+        .select('cantidad_solicitada_g')
+        .eq('socio_id', profile.socio_id)
+        .gte('fecha', inicioMesStr),
+    ]);
+    contextoSocio = {
+      tope: ficha?.rango_maximo_g ?? ficha?.consumo_mensual_estimado_g ?? null,
+      solicitadoMes: (solicitudesMes ?? []).reduce((sum, s) => sum + (Number(s.cantidad_solicitada_g) || 0), 0),
+    };
   }
 
   return (
     <div>
       <h1 className="text-xl font-bold text-brand mb-1">Nueva solicitud de suministro</h1>
       <p className="text-sm text-neutral-500 mb-6">Manual Interno Cap. VIII</p>
+
+      {contextoSocio && (
+        <div className="card p-4 mb-4 max-w-2xl text-sm bg-brand-pale">
+          <p>
+            Llevas solicitados <strong>{contextoSocio.solicitadoMes} g</strong> este mes
+            {contextoSocio.tope ? (
+              <> de un tope autorizado de <strong>{contextoSocio.tope} g</strong>.</>
+            ) : (
+              '. Tu tope mensual aún no ha sido definido por Dirección Técnica.'
+            )}
+          </p>
+        </div>
+      )}
 
       <form action={crearSolicitud} className="card p-6 space-y-4 max-w-2xl">
         {searchParams?.error && (

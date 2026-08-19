@@ -1,11 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
-import { requireStaff } from '@/lib/auth';
+import { getSessionProfile } from '@/lib/auth';
 import SignaturePad from '@/components/SignaturePad';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 
+const STAFF = ['admin', 'directorio', 'secretaria', 'direccion_tecnica'];
+
 export default async function EntregaDetallePage({ params }: { params: { id: string } }) {
-  await requireStaff();
+  const profile = await getSessionProfile();
+  if (!profile) redirect('/login');
+  const isStaff = STAFF.includes(profile.rol);
+
   const supabase = createClient();
 
   const [{ data: entrega }, { data: firmas }, { data: traslados }] = await Promise.all([
@@ -15,10 +20,14 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
       .eq('id', params.id)
       .single(),
     supabase.from('firmas').select('*').eq('contexto', 'entrega').eq('referencia_id', params.id),
-    supabase.from('traslados').select('id, codigo').eq('entrega_id', params.id).limit(1),
+    isStaff
+      ? supabase.from('traslados').select('id, codigo').eq('entrega_id', params.id).limit(1)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   if (!entrega) notFound();
+  if (!isStaff && entrega.socio_id !== profile.socio_id) notFound();
+
   const yaTieneTraslado = (traslados ?? []).length > 0;
 
   return (
@@ -31,9 +40,11 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
             {new Date(entrega.fecha_hora).toLocaleString('es-CL')}
           </p>
         </div>
-        <Link href={`/suministracion/entregas/${entrega.id}/rotulo`} className="btn-secondary text-sm whitespace-nowrap">
-          Ver rótulo de transporte
-        </Link>
+        {isStaff && (
+          <Link href={`/suministracion/entregas/${entrega.id}/rotulo`} className="btn-secondary text-sm whitespace-nowrap">
+            Ver rótulo de transporte
+          </Link>
+        )}
       </div>
 
       <div className="card p-5 text-sm space-y-1">
@@ -43,7 +54,7 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
         <p><span className="text-neutral-500">Observaciones:</span> {entrega.observaciones ?? '—'}</p>
       </div>
 
-      {entrega.destino && !yaTieneTraslado && (
+      {isStaff && entrega.destino && !yaTieneTraslado && (
         <div className="card p-6 bg-amber-50 border border-amber-200">
           <p className="text-sm mb-3">
             Esta entrega tiene un destino registrado. ¿Corresponde generar el traslado hacia allá?
@@ -57,26 +68,31 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
         </div>
       )}
 
-      {yaTieneTraslado && (
+      {isStaff && yaTieneTraslado && (
         <p className="text-sm text-brand bg-brand-pale rounded px-3 py-2">
           Ya existe un traslado registrado para esta entrega ({traslados![0].codigo}).
         </p>
       )}
 
       <section>
-        <h2 className="font-semibold text-brand mb-3">Firma de recepción</h2>
+        <h2 className="font-semibold text-brand mb-3">Comprobante de recibo conforme</h2>
         {(firmas ?? []).length > 0 ? (
           <p className="text-sm text-brand bg-brand-pale rounded px-3 py-2">
             Recepción firmada por {firmas![0].firmante_nombre} el{' '}
             {new Date(firmas![0].created_at).toLocaleString('es-CL')}.
           </p>
         ) : (
-          <SignaturePad
-            contexto="entrega"
-            referenciaId={entrega.id}
-            socioId={entrega.socio_id}
-            firmanteNombreDefault={(entrega.socio as any)?.nombre_completo}
-          />
+          <>
+            <p className="text-sm text-neutral-500 mb-3">
+              Al firmar, confirmas haber recibido conforme la cantidad y el material indicados arriba.
+            </p>
+            <SignaturePad
+              contexto="entrega"
+              referenciaId={entrega.id}
+              socioId={entrega.socio_id}
+              firmanteNombreDefault={(entrega.socio as any)?.nombre_completo}
+            />
+          </>
         )}
       </section>
     </div>

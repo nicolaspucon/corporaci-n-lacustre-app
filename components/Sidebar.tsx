@@ -82,6 +82,7 @@ export default function Sidebar({ profile }: { profile: any }) {
           <NavGroup label="Mi cuenta">
             <NavLink href="/mi-perfil" label="Mi ficha y expediente" />
             <NavLink href="/suministracion/solicitudes" label="Mis solicitudes" />
+            <NavLink href="/suministracion/entregas" label="Mis entregas" />
           </NavGroup>
         )}
       </nav>
