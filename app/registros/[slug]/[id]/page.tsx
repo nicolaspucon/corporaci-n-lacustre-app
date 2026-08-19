@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
 import { getEntity, getResponsableColumn } from '@/lib/entities';
-import { eliminarRegistro, confirmarIngreso } from '@/lib/actions/registros';
+import { eliminarRegistro, confirmarIngreso, actualizarRegistro } from '@/lib/actions/registros';
 import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import SignaturePad from '@/components/SignaturePad';
 import { notFound } from 'next/navigation';
@@ -54,7 +54,7 @@ export default async function RegistroDetallePage({
   const r = registro as any;
   const firma = (firmas ?? [])[0] ?? null;
 
-  const fotoField = entity.fields.find((f) => f.type === 'photo');
+  const fotoField = entity.fields.find((f) => f.type === 'photo' && !f.faseFinal);
   let fotoUrl: string | null = null;
   if (fotoField && r[`${fotoField.key}_path`]) {
     const { data: signed } = await supabase.storage
@@ -62,6 +62,14 @@ export default async function RegistroDetallePage({
       .createSignedUrl(r[`${fotoField.key}_path`], 3600);
     fotoUrl = signed?.signedUrl ?? null;
   }
+
+  // Campos de "etapa final" (ej. fecha de término, peso final) que todavía no se han llenado.
+  const camposFaseFinal = entity.fields.filter((f) => f.faseFinal);
+  const camposFaseFinalPendientes = camposFaseFinal.filter((f) => {
+    const col = f.type === 'lote' || f.type === 'planta' ? `${f.key}_id` : f.key;
+    const val = r[col];
+    return val === null || val === undefined || val === '';
+  });
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -86,7 +94,10 @@ export default async function RegistroDetallePage({
             else value = r[f.key];
             return (
               <div key={f.key} className="grid grid-cols-3 gap-2 text-sm">
-                <p className="text-neutral-500">{f.label}</p>
+                <p className="text-neutral-500">
+                  {f.label}
+                  {f.faseFinal && <span className="text-neutral-400"> (etapa final)</span>}
+                </p>
                 <p className="col-span-2 font-medium">
                   {value !== null && value !== undefined && value !== '' ? String(value) : '—'}
                 </p>
@@ -110,6 +121,61 @@ export default async function RegistroDetallePage({
           ) : (
             <p className="text-sm text-neutral-400">No se adjuntó fotografía.</p>
           )}
+        </div>
+      )}
+
+      {camposFaseFinalPendientes.length > 0 && (
+        <div className="card p-6">
+          <h2 className="font-semibold text-brand mb-1">Completar {entity.label.toLowerCase()} — etapa final</h2>
+          <p className="text-sm text-neutral-500 mb-4">
+            Estos datos recién se saben al terminar el proceso. Complétalos cuando corresponda.
+          </p>
+          <form action={actualizarRegistro} className="space-y-4">
+            <input type="hidden" name="__slug" value={entity.slug} />
+            <input type="hidden" name="__id" value={params.id} />
+
+            {camposFaseFinalPendientes.map((field) => (
+              <div key={field.key}>
+                <label className="label" htmlFor={field.key}>
+                  {field.label}
+                  {field.required && <span className="text-red-500"> *</span>}
+                </label>
+
+                {field.type === 'textarea' && (
+                  <textarea className="input" id={field.key} name={field.key} rows={3} />
+                )}
+
+                {field.type === 'boolean' && (
+                  <input className="h-4 w-4" id={field.key} name={field.key} type="checkbox" />
+                )}
+
+                {field.type === 'photo' && (
+                  <input
+                    className="input"
+                    id={field.key}
+                    name={field.key}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                  />
+                )}
+
+                {['text', 'number', 'date', 'time', 'datetime-local'].includes(field.type) && (
+                  <input
+                    className="input"
+                    id={field.key}
+                    name={field.key}
+                    type={field.type}
+                    step={field.type === 'number' ? 'any' : undefined}
+                  />
+                )}
+              </div>
+            ))}
+
+            <button type="submit" className="btn-primary">
+              Guardar etapa final
+            </button>
+          </form>
         </div>
       )}
 

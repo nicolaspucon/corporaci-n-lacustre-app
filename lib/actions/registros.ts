@@ -18,6 +18,8 @@ export async function createRegistro(formData: FormData) {
   const payload: Record<string, unknown> = {};
 
   for (const field of entity.fields) {
+    if (field.faseFinal) continue;
+
     if (field.type === 'photo') {
       const file = formData.get(field.key);
       if (file instanceof File && file.size > 0) {
@@ -94,6 +96,63 @@ export async function eliminarRegistro(formData: FormData) {
   redirect(`/registros/${slug}`);
 }
 
+export async function actualizarRegistro(formData: FormData) {
+  const slug = String(formData.get('__slug') || '');
+  const id = String(formData.get('__id') || '');
+  const entity = getEntity(slug);
+  if (!entity || !id) {
+    redirect(`/registros/${slug}`);
+  }
+
+  const supabase = createClient();
+
+  const payload: Record<string, unknown> = {};
+
+  for (const field of entity!.fields) {
+    if (!field.faseFinal) continue;
+
+    if (field.type === 'photo') {
+      const file = formData.get(field.key);
+      if (file instanceof File && file.size > 0) {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const path = `registros/${entity!.table}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(path, file);
+        if (uploadError) {
+          redirect(`/registros/${slug}/${id}?error=${encodeURIComponent('No se pudo subir la fotografía: ' + uploadError.message)}`);
+        }
+        payload[`${field.key}_path`] = path;
+      }
+      continue;
+    }
+
+    const raw = formData.get(field.key);
+    const col = field.type === 'lote' || field.type === 'planta' ? `${field.key}_id` : field.key;
+
+    if (field.type === 'boolean') {
+      payload[col] = raw === 'on';
+      continue;
+    }
+    if (raw === null || raw === '') {
+      payload[col] = null;
+      continue;
+    }
+    payload[col] = field.type === 'number' ? Number(raw) : String(raw);
+  }
+
+  if (Object.keys(payload).length === 0) {
+    redirect(`/registros/${slug}/${id}`);
+  }
+
+  const { error } = await supabase.from(entity!.table).update(payload).eq('id', id);
+
+  if (error) {
+    redirect(`/registros/${slug}/${id}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/registros/${slug}`);
+  revalidatePath(`/registros/${slug}/${id}`);
+  redirect(`/registros/${slug}/${id}`);
+}
 
 export async function confirmarIngreso(formData: FormData) {
   const returnTo = String(formData.get('__return') || '/dashboard');

@@ -28,6 +28,9 @@ export interface FieldDef {
   type: FieldType;
   options?: string[]; // para type 'select'
   required?: boolean;
+  /** Dato que recién se conoce al terminar el proceso (ej. peso final, fecha de
+   * término). No se pide al crear el registro; se completa después desde su ficha. */
+  faseFinal?: boolean;
 }
 
 export interface EntityDef {
@@ -155,12 +158,12 @@ export const ENTITIES: EntityDef[] = [
     fields: [
       { key: 'lote', label: 'Lote', type: 'lote', required: true },
       { key: 'fecha_ingreso', label: 'Fecha de ingreso', type: 'date' },
-      { key: 'fecha_termino', label: 'Fecha de término', type: 'date' },
       { key: 'condiciones_ambientales', label: 'Condiciones ambientales', type: 'text' },
       { key: 'peso_inicial_g', label: 'Peso inicial (g)', type: 'number' },
-      { key: 'peso_final_g', label: 'Peso final (g)', type: 'number' },
       { key: 'ubicacion', label: 'Ubicación', type: 'text' },
-      { key: 'eliminacion_desechos', label: 'Eliminación de desechos', type: 'text' },
+      { key: 'fecha_termino', label: 'Fecha de término', type: 'date', faseFinal: true },
+      { key: 'peso_final_g', label: 'Peso final (g)', type: 'number', faseFinal: true },
+      { key: 'eliminacion_desechos', label: 'Eliminación de desechos', type: 'text', faseFinal: true },
     ],
   },
   {
@@ -173,10 +176,10 @@ export const ENTITIES: EntityDef[] = [
     fields: [
       { key: 'lote', label: 'Lote', type: 'lote', required: true },
       { key: 'inicio', label: 'Inicio', type: 'date' },
-      { key: 'fin', label: 'Finalización', type: 'date' },
-      { key: 'humedad_pct', label: 'Humedad (%)', type: 'number' },
-      { key: 'evaluacion_organoleptica', label: 'Evaluación organoléptica', type: 'text' },
       { key: 'observaciones', label: 'Observaciones', type: 'textarea' },
+      { key: 'fin', label: 'Finalización', type: 'date', faseFinal: true },
+      { key: 'humedad_pct', label: 'Humedad (%)', type: 'number', faseFinal: true },
+      { key: 'evaluacion_organoleptica', label: 'Evaluación organoléptica', type: 'text', faseFinal: true },
     ],
   },
   {
