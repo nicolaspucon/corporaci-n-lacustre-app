@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
 import { calcularPlantasActivas } from '@/lib/plantasActivas';
 import { calcularStockInventario } from '@/lib/inventario';
+import { calcularBalanceProduccion } from '@/lib/balance';
+import BalanceProduccion from '@/components/BalanceProduccion';
 import Link from 'next/link';
 
 export default async function DashboardPage() {
@@ -12,7 +14,7 @@ export default async function DashboardPage() {
     return <PanelSocio profile={profile} />;
   }
 
-  const [{ count: socios }, { count: lotes }, { count: incidentesAbiertos }, { count: solicitudesPendientes }, resumenPlantas, resumenStock] =
+  const [{ count: socios }, { count: lotes }, { count: incidentesAbiertos }, { count: solicitudesPendientes }, resumenPlantas, resumenStock, balance] =
     await Promise.all([
       supabase.from('socios').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
       supabase.from('lotes').select('*', { count: 'exact', head: true }).not('estado', 'in', '(cerrado)'),
@@ -20,6 +22,7 @@ export default async function DashboardPage() {
       supabase.from('solicitudes_suministro').select('*', { count: 'exact', head: true }).eq('resolucion', 'pendiente'),
       calcularPlantasActivas(supabase),
       calcularStockInventario(supabase),
+      calcularBalanceProduccion(supabase),
     ]);
 
   const stats = [
@@ -35,7 +38,7 @@ export default async function DashboardPage() {
     <div>
       <h1 className="text-xl font-bold text-brand mb-1">Panel general</h1>
       <p className="text-neutral-500 mb-6">Corporación de Usuarios Medicinales de Cannabis Zona Lacustre.</p>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {stats.map((s) => (
           <Link key={s.label} href={s.href} className="card p-5 hover:border-brand">
             <p className="text-3xl font-bold text-brand">{s.value}</p>
@@ -43,6 +46,16 @@ export default async function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      <BalanceProduccion
+        demandaMensualG={balance.demandaMensualG}
+        sociosConsiderados={balance.sociosConsiderados}
+        sociosActivosTotal={balance.sociosActivosTotal}
+        stockDisponibleG={balance.stockDisponibleG}
+        produccionProyectadaTotalG={balance.produccionProyectadaTotalG}
+        mesesCobertura={balance.mesesCobertura}
+        proyeccionPorMes={balance.proyeccionPorMes}
+      />
     </div>
   );
 }
