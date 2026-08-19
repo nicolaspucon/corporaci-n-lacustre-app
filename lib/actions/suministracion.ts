@@ -67,9 +67,17 @@ export async function crearEntrega(formData: FormData) {
     redirect('/suministracion/entregas/nuevo?error=' + encodeURIComponent('Debes indicar el socio.'));
   }
 
+  const loteId = str(formData, 'lote_id');
+  if (!loteId) {
+    redirect(
+      '/suministracion/entregas/nuevo?error=' +
+        encodeURIComponent('Debes indicar el lote de origen (así queda registrada la variedad entregada).')
+    );
+  }
+
   const payload = {
     socio_id: socioId,
-    lote_id: str(formData, 'lote_id'),
+    lote_id: loteId,
     cantidad_g: num(formData, 'cantidad_g'),
     destino: str(formData, 'destino'),
     responsable_entrega: profile?.id ?? null,

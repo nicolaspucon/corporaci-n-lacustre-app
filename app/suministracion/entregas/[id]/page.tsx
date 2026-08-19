@@ -16,7 +16,7 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
   const [{ data: entrega }, { data: firmas }, { data: traslados }] = await Promise.all([
     supabase
       .from('entregas')
-      .select('*, socio:socios(cus, nombre_completo), lote:lotes(codigo)')
+      .select('*, socio:socios(cus, nombre_completo), lote:lotes(codigo, cultivo_genetica)')
       .eq('id', params.id)
       .single(),
     supabase.from('firmas').select('*').eq('contexto', 'entrega').eq('referencia_id', params.id),
@@ -49,6 +49,7 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
 
       <div className="card p-5 text-sm space-y-1">
         <p><span className="text-neutral-500">Lote de origen:</span> {(entrega.lote as any)?.codigo ?? '—'}</p>
+        <p><span className="text-neutral-500">Variedad entregada:</span> {(entrega.lote as any)?.cultivo_genetica ?? '—'}</p>
         <p><span className="text-neutral-500">Cantidad entregada:</span> {entrega.cantidad_g ?? '—'} g</p>
         <p><span className="text-neutral-500">Destino:</span> {entrega.destino ?? '—'}</p>
         <p><span className="text-neutral-500">Observaciones:</span> {entrega.observaciones ?? '—'}</p>

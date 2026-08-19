@@ -11,7 +11,7 @@ export default async function RotuloEntregaPage({ params }: { params: { id: stri
 
   const { data: entrega } = await supabase
     .from('entregas')
-    .select('*, socio:socios(nombre_completo, rut)')
+    .select('*, socio:socios(nombre_completo, rut), lote:lotes(codigo, cultivo_genetica)')
     .eq('id', params.id)
     .single();
 
@@ -29,6 +29,7 @@ export default async function RotuloEntregaPage({ params }: { params: { id: stri
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(verifyUrl)}`;
 
   const socio = entrega.socio as any;
+  const lote = entrega.lote as any;
 
   return (
     <div className="max-w-xl space-y-4">
@@ -51,6 +52,8 @@ export default async function RotuloEntregaPage({ params }: { params: { id: stri
           <Campo label="Fecha" value={new Date(entrega.fecha_hora).toLocaleDateString('es-CL')} />
           <Campo label="Destino" value={entrega.destino} />
           <Campo label="Cantidad" value={entrega.cantidad_g ? `${entrega.cantidad_g} g` : null} />
+          <Campo label="Lote" value={lote?.codigo} />
+          <Campo label="Variedad" value={lote?.cultivo_genetica} />
         </div>
 
         <div className="flex flex-col items-center gap-2 border-t border-neutral-200 pt-4">

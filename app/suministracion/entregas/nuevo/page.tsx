@@ -12,7 +12,7 @@ export default async function NuevaEntregaPage({
 
   const [{ data: socios }, { data: lotes }, solicitudRes] = await Promise.all([
     supabase.from('socios').select('id, cus, nombre_completo, direccion').eq('estado', 'activo').order('cus'),
-    supabase.from('lotes').select('id, codigo').order('codigo', { ascending: false }),
+    supabase.from('lotes').select('id, codigo, cultivo_genetica').order('codigo', { ascending: false }),
     searchParams?.solicitud
       ? supabase.from('solicitudes_suministro').select('id, socio_id, cantidad_solicitada_g').eq('id', searchParams.solicitud).single()
       : Promise.resolve({ data: null }),
@@ -47,11 +47,16 @@ export default async function NuevaEntregaPage({
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="label" htmlFor="lote_id">Lote de origen</label>
-            <select className="input" id="lote_id" name="lote_id">
-              <option value="">— Sin asignar —</option>
+            <label className="label" htmlFor="lote_id">
+              Lote de origen (variedad) <span className="text-red-500">*</span>
+            </label>
+            <select className="input" id="lote_id" name="lote_id" required>
+              <option value="">— Selecciona el lote —</option>
               {(lotes ?? []).map((l) => (
-                <option key={l.id} value={l.id}>{l.codigo}</option>
+                <option key={l.id} value={l.id}>
+                  {l.codigo}
+                  {l.cultivo_genetica ? ` — ${l.cultivo_genetica}` : ''}
+                </option>
               ))}
             </select>
           </div>

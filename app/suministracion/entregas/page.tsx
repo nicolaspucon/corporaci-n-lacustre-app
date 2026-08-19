@@ -13,7 +13,7 @@ export default async function EntregasPage() {
 
   const query = supabase
     .from('entregas')
-    .select('id, codigo, fecha_hora, cantidad_g, socio:socios(cus, nombre_completo), lote:lotes(codigo)')
+    .select('id, codigo, fecha_hora, cantidad_g, socio:socios(cus, nombre_completo), lote:lotes(codigo, cultivo_genetica)')
     .order('fecha_hora', { ascending: false })
     .limit(300);
   if (!isStaff && profile.socio_id) query.eq('socio_id', profile.socio_id);
@@ -46,6 +46,7 @@ export default async function EntregasPage() {
               <th>Fecha</th>
               {isStaff && <th>Socio</th>}
               <th>Lote</th>
+              <th>Variedad</th>
               <th>Cantidad (g)</th>
               <th></th>
             </tr>
@@ -53,7 +54,7 @@ export default async function EntregasPage() {
           <tbody>
             {(data ?? []).length === 0 && (
               <tr>
-                <td colSpan={isStaff ? 5 : 4} className="text-center text-neutral-500 py-8">
+                <td colSpan={isStaff ? 6 : 5} className="text-center text-neutral-500 py-8">
                   Sin entregas registradas todavía.
                 </td>
               </tr>
@@ -64,6 +65,7 @@ export default async function EntregasPage() {
                 <td>{new Date(e.fecha_hora).toLocaleString('es-CL')}</td>
                 {isStaff && <td>{e.socio?.cus} — {e.socio?.nombre_completo}</td>}
                 <td>{e.lote?.codigo ?? '—'}</td>
+                <td>{e.lote?.cultivo_genetica ?? '—'}</td>
                 <td>{e.cantidad_g ?? '—'}</td>
                 <td><Link href={`/suministracion/entregas/${e.id}`} className="text-brand underline">Ver</Link></td>
               </tr>
