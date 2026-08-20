@@ -33,7 +33,7 @@ export async function calcularVencimientos(supabase: any): Promise<VencimientoIt
   const socioIds = (socios ?? []).map((s: any) => s.id);
   if (socioIds.length === 0) return [];
 
-  const socioPorId = new Map((socios ?? []).map((s: any) => [s.id, s]));
+  const socioPorId = new Map<string, any>((socios ?? []).map((s: any): [string, any] => [s.id, s]));
 
   const [{ data: fichas }, { data: documentos }] = await Promise.all([
     supabase
