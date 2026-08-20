@@ -78,22 +78,42 @@ export async function createRegistro(formData: FormData) {
   redirect(`/registros/${slug}/${created!.id}`);
 }
 
-export async function eliminarRegistro(formData: FormData) {
+// Anula un registro en vez de borrarlo físicamente: queda oculto de la lista
+// normal, pero se conserva con fecha, quién lo anuló y el motivo, para poder
+// demostrarlo ante una fiscalización.
+export async function anularRegistro(formData: FormData) {
   const slug = String(formData.get('__slug') || '');
   const id = String(formData.get('id') || '');
+  const motivo = String(formData.get('motivo') || '').trim();
   const entity = getEntity(slug);
   if (!entity || !id) {
     redirect(`/registros/${slug}`);
   }
 
+  if (!motivo) {
+    redirect(`/registros/${slug}/${id}?error=${encodeURIComponent('Debes indicar el motivo de la anulación.')}`);
+  }
+
   const supabase = createClient();
-  const { error } = await supabase.from(entity!.table).delete().eq('id', id);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from(entity!.table)
+    .update({
+      anulado_en: new Date().toISOString(),
+      anulado_por: user?.id ?? null,
+      motivo_anulacion: motivo,
+    })
+    .eq('id', id);
 
   if (error) {
     redirect(`/registros/${slug}/${id}?error=${encodeURIComponent(error.message)}`);
   }
 
   revalidatePath(`/registros/${slug}`);
+  revalidatePath(`/registros/${slug}/${id}`);
   redirect(`/registros/${slug}`);
 }
 
@@ -146,6 +166,20 @@ export async function actualizarRegistro(formData: FormData) {
   if (Object.keys(payload).length === 0) {
     redirect(`/registros/${slug}/${id}`);
   }
+
+  // Cierre controlado de Incidentes / No Conformidades: solo se consideran
+  // cerrados cuando queda registrada la verificación de eficacia (no basta con
+  // poner la fecha de cierre a mano en otro lado).
+  if (
+    (entity!.slug === 'incidentes' || entity!.slug === 'no-conformidades') &&
+    payload['fecha_cierre'] &&
+    payload['verificacion_eficacia']
+  ) {
+    if (entity!.slug === 'incidentes') payload['estado'] = 'cerrado';
+  }
+
+  payload.updated_at = new Date().toISOString();
+  payload.updated_by = user?.id ?? null;
 
   const { error } = await supabase.from(entity!.table).update(payload).eq('id', id);
 

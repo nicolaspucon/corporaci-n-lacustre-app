@@ -75,16 +75,17 @@ export async function calcularPlantasActivas(supabase: any): Promise<ResumenPlan
     await Promise.all([
       supabase
         .from('lotes')
-        .select('id, codigo, fecha_inicio, sem_germinacion, sem_vegetacion, sem_floracion, sem_cosecha, estado, n_plantas'),
-      supabase.from('plantas_madre').select('id', { count: 'exact', head: true }).eq('estado', 'activa'),
-      supabase.from('esquejes').select('id, cantidad_realizados').eq('estado', 'enraizamiento'),
-      supabase.from('esquejes').select('cantidad_perdidas'),
+        .select('id, codigo, fecha_inicio, sem_germinacion, sem_vegetacion, sem_floracion, sem_cosecha, estado, n_plantas')
+        .is('anulado_en', null),
+      supabase.from('plantas_madre').select('id', { count: 'exact', head: true }).eq('estado', 'activa').is('anulado_en', null),
+      supabase.from('esquejes').select('id, cantidad_realizados').eq('estado', 'enraizamiento').is('anulado_en', null),
+      supabase.from('esquejes').select('cantidad_perdidas').is('anulado_en', null),
     ]);
 
   const loteIds = (lotes ?? []).map((l: any) => l.id);
   const { data: todasPlantas } =
     loteIds.length > 0
-      ? await supabase.from('plantas').select('id, lote_id').in('lote_id', loteIds)
+      ? await supabase.from('plantas').select('id, lote_id').in('lote_id', loteIds).is('anulado_en', null)
       : { data: [] as any[] };
 
   const plantasPorLote = new Map<string, number>();

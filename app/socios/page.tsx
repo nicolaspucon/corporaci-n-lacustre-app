@@ -1,30 +1,38 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import DataTable from '@/components/DataTable';
 import Link from 'next/link';
 
-export default async function SociosPage() {
+export default async function SociosPage({ searchParams }: { searchParams?: { ver?: string } }) {
   await requireStaff();
   const supabase = createClient();
+  const verAnulados = searchParams?.ver === 'anulados';
 
-  const { data, error } = await supabase
+  const query = supabase
     .from('socios')
     .select('id, cus, nombre_completo, rut, categoria, estado, fecha_ingreso')
     .order('cus', { ascending: false })
     .limit(500);
+  if (verAnulados) query.not('anulado_en', 'is', null);
+  else query.is('anulado_en', null);
 
-  const rows = (data ?? []).map((s) => ({
-    ...s,
-    nombre_completo: { toString: () => s.nombre_completo } as any,
-  }));
+  const { data, error } = await query;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-brand">Registro Maestro de Socios</h1>
-        <Link href="/socios/nuevo" className="btn-primary">
-          + Nuevo socio
-        </Link>
+        <h1 className="text-xl font-bold text-brand">
+          Registro Maestro de Socios{verAnulados && <span className="text-neutral-400 font-normal"> — anulados</span>}
+        </h1>
+        <div className="flex gap-3">
+          <Link href={verAnulados ? '/socios' : '/socios?ver=anulados'} className="btn-secondary">
+            {verAnulados ? 'Ver vigentes' : 'Ver anulados'}
+          </Link>
+          {!verAnulados && (
+            <Link href="/socios/nuevo" className="btn-primary">
+              + Nuevo socio
+            </Link>
+          )}
+        </div>
       </div>
       <p className="text-sm text-neutral-500 mb-6">Manual Interno 4.15</p>
 
@@ -51,7 +59,7 @@ export default async function SociosPage() {
             {(data ?? []).length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center text-neutral-500 py-8">
-                  Sin socios registrados todavía.
+                  {verAnulados ? 'Sin socios anulados.' : 'Sin socios registrados todavía.'}
                 </td>
               </tr>
             )}

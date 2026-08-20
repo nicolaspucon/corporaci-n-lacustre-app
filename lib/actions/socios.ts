@@ -36,7 +36,18 @@ export async function actualizarEstadoSocio(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('socio_id'));
   const estado = String(formData.get('estado'));
-  await supabase.from('socios').update({ estado, fecha_ultima_actualizacion: new Date().toISOString().slice(0, 10) }).eq('id', id);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await supabase
+    .from('socios')
+    .update({
+      estado,
+      fecha_ultima_actualizacion: new Date().toISOString().slice(0, 10),
+      updated_at: new Date().toISOString(),
+      updated_by: user?.id ?? null,
+    })
+    .eq('id', id);
   revalidatePath(`/socios/${id}`);
 }
 
@@ -86,26 +97,34 @@ function num(formData: FormData, key: string) {
 }
 
 
-export async function eliminarSocio(formData: FormData) {
+// Anula la ficha del socio en vez de eliminarla: queda oculta de la lista
+// normal, pero se conserva con fecha, quién la anuló y el motivo. Para un
+// socio que renunció o fue excluido pero cuya membresía sí fue real, sigue
+// siendo más correcto cambiar su estado a "Renunciado"/"Excluido"; anular es
+// para corregir un error de ingreso (ficha duplicada, creada por error, etc.).
+export async function anularSocio(formData: FormData) {
   await requireStaff();
   const supabase = createClient();
   const id = String(formData.get('id') || '');
+  const motivo = String(formData.get('motivo') || '').trim();
 
   if (!id) {
     redirect('/socios?error=' + encodeURIComponent('Falta el identificador del socio.'));
   }
+  if (!motivo) {
+    redirect(`/socios/${id}?error=` + encodeURIComponent('Debes indicar el motivo de la anulación.'));
+  }
 
-  const { error } = await supabase.from('socios').delete().eq('id', id);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from('socios')
+    .update({ anulado_en: new Date().toISOString(), anulado_por: user?.id ?? null, motivo_anulacion: motivo })
+    .eq('id', id);
 
   if (error) {
-    if (error.code === '23503') {
-      redirect(
-        `/socios/${id}?error=` +
-          encodeURIComponent(
-            'No se puede eliminar: este socio ya tiene registros asociados (documentos, solicitudes, usuario vinculado, etc.). Si ya no participa, cambia su estado a "Renunciado" o "Excluido" en lugar de eliminarlo.'
-          )
-      );
-    }
     redirect(`/socios/${id}?error=` + encodeURIComponent(error.message));
   }
 

@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { actualizarEstadoLote, actualizarGeneticaLote, eliminarLote } from '@/lib/actions/agricola';
-import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
+import { actualizarEstadoLote, actualizarGeneticaLote, anularLote } from '@/lib/actions/agricola';
+import AnularForm from '@/components/AnularForm';
+import AnuladoBanner from '@/components/AnuladoBanner';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -24,11 +25,21 @@ export default async function LoteDetallePage({
   const supabase = createClient();
 
   const [{ data: lote }, { data: plantas }] = await Promise.all([
-    supabase.from('lotes').select('*').eq('id', params.id).single(),
-    supabase.from('plantas').select('id, codigo, variedad, estado_sanitario, fecha_germinacion, fecha_cosecha, produccion_esperada_g').eq('lote_id', params.id).order('codigo'),
+    supabase
+      .from('lotes')
+      .select('*, anulador:profiles!anulado_por(nombre_completo), editor:profiles!updated_by(nombre_completo)')
+      .eq('id', params.id)
+      .single(),
+    supabase
+      .from('plantas')
+      .select('id, codigo, variedad, estado_sanitario, fecha_germinacion, fecha_cosecha, produccion_esperada_g')
+      .eq('lote_id', params.id)
+      .is('anulado_en', null)
+      .order('codigo'),
   ]);
 
   if (!lote) notFound();
+  const anulado = !!lote.anulado_en;
 
   const inicio = lote.fecha_inicio as string;
   const finGerminacion = addDays(inicio, (lote.sem_germinacion ?? 0) * 7);
@@ -55,18 +66,23 @@ export default async function LoteDetallePage({
           {searchParams.error}
         </p>
       )}
+      {anulado && (
+        <AnuladoBanner fecha={lote.anulado_en} anuladoPor={lote.anulador?.nombre_completo} motivo={lote.motivo_anulacion} />
+      )}
       <div>
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-xl font-bold text-brand">Lote {lote.codigo}</h1>
-          <form action={actualizarEstadoLote} className="flex items-center gap-2">
-            <input type="hidden" name="lote_id" value={lote.id} />
-            <select name="estado" defaultValue={lote.estado} className="input py-1 text-sm w-auto">
-              {ESTADOS.map((e) => (
-                <option key={e} value={e} className="capitalize">{e}</option>
-              ))}
-            </select>
-            <button type="submit" className="btn-secondary text-sm">Actualizar estado</button>
-          </form>
+          {!anulado && (
+            <form action={actualizarEstadoLote} className="flex items-center gap-2">
+              <input type="hidden" name="lote_id" value={lote.id} />
+              <select name="estado" defaultValue={lote.estado} className="input py-1 text-sm w-auto">
+                {ESTADOS.map((e) => (
+                  <option key={e} value={e} className="capitalize">{e}</option>
+                ))}
+              </select>
+              <button type="submit" className="btn-secondary text-sm">Actualizar estado</button>
+            </form>
+          )}
         </div>
         <p className="text-sm text-neutral-500">
           {lote.cultivo_genetica ?? 'Genética no especificada'} · {lote.area_m2 ?? '—'} m² · {lote.n_plantas ?? '—'} plantas planificadas
@@ -74,35 +90,42 @@ export default async function LoteDetallePage({
         <p className="text-sm text-neutral-500">
           Banco de semillas: {lote.banco_semillas ?? '—'} · % THC: {lote.thc_pct ?? '—'} · % CBD: {lote.cbd_pct ?? '—'}
         </p>
+        {lote.updated_at && (
+          <p className="text-xs text-neutral-400 mt-1">
+            Última edición: {new Date(lote.updated_at).toLocaleString('es-CL')} · {lote.editor?.nombre_completo ?? '—'}
+          </p>
+        )}
       </div>
 
-      <section>
-        <h2 className="font-semibold text-brand mb-2">Editar datos genéticos</h2>
-        <p className="text-sm text-neutral-500 mb-3">
-          Útil para corregir con el resultado de un análisis de laboratorio. Estos datos son los que se
-          muestran en el rótulo de transporte y en la verificación por QR de las entregas de este lote.
-        </p>
-        <form action={actualizarGeneticaLote} className="card p-5 grid sm:grid-cols-3 gap-4 items-end">
-          <input type="hidden" name="lote_id" value={lote.id} />
-          <div>
-            <label className="label" htmlFor="banco_semillas">Banco de semillas</label>
-            <input className="input" id="banco_semillas" name="banco_semillas" defaultValue={lote.banco_semillas ?? ''} />
-          </div>
-          <div>
-            <label className="label" htmlFor="thc_pct">% THC</label>
-            <input className="input" id="thc_pct" name="thc_pct" type="number" step="0.01" defaultValue={lote.thc_pct ?? ''} />
-          </div>
-          <div>
-            <label className="label" htmlFor="cbd_pct">% CBD</label>
-            <input className="input" id="cbd_pct" name="cbd_pct" type="number" step="0.01" defaultValue={lote.cbd_pct ?? ''} />
-          </div>
-          <div className="sm:col-span-3">
-            <button type="submit" className="btn-secondary text-sm">
-              Guardar datos genéticos
-            </button>
-          </div>
-        </form>
-      </section>
+      {!anulado && (
+        <section>
+          <h2 className="font-semibold text-brand mb-2">Editar datos genéticos</h2>
+          <p className="text-sm text-neutral-500 mb-3">
+            Útil para corregir con el resultado de un análisis de laboratorio. Estos datos son los que se
+            muestran en el rótulo de transporte y en la verificación por QR de las entregas de este lote.
+          </p>
+          <form action={actualizarGeneticaLote} className="card p-5 grid sm:grid-cols-3 gap-4 items-end">
+            <input type="hidden" name="lote_id" value={lote.id} />
+            <div>
+              <label className="label" htmlFor="banco_semillas">Banco de semillas</label>
+              <input className="input" id="banco_semillas" name="banco_semillas" defaultValue={lote.banco_semillas ?? ''} />
+            </div>
+            <div>
+              <label className="label" htmlFor="thc_pct">% THC</label>
+              <input className="input" id="thc_pct" name="thc_pct" type="number" step="0.01" defaultValue={lote.thc_pct ?? ''} />
+            </div>
+            <div>
+              <label className="label" htmlFor="cbd_pct">% CBD</label>
+              <input className="input" id="cbd_pct" name="cbd_pct" type="number" step="0.01" defaultValue={lote.cbd_pct ?? ''} />
+            </div>
+            <div className="sm:col-span-3">
+              <button type="submit" className="btn-secondary text-sm">
+                Guardar datos genéticos
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section>
         <h2 className="font-semibold text-brand mb-3">Planificación calculada</h2>
@@ -182,15 +205,7 @@ export default async function LoteDetallePage({
         </section>
       )}
 
-      <form action={eliminarLote} className="pt-2">
-        <input type="hidden" name="lote_id" value={lote.id} />
-        <ConfirmSubmitButton
-          confirmText="¿Eliminar este lote? También se eliminarán las plantas generadas para él. Esta acción no se puede deshacer."
-          className="text-sm text-red-600 hover:underline"
-        >
-          Eliminar lote
-        </ConfirmSubmitButton>
-      </form>
+      {!anulado && <AnularForm action={anularLote} idField="lote_id" idValue={lote.id} label="lote" />}
     </div>
   );
 }

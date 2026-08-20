@@ -25,9 +25,14 @@ export default async function EntregasPage() {
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold text-brand">Entregas de suministro</h1>
         {isStaff && (
-          <Link href="/suministracion/entregas/nuevo" className="btn-primary">
-            + Nueva entrega
-          </Link>
+          <div className="flex gap-3">
+            <a href="/suministracion/entregas/exportar" className="btn-secondary">
+              Descargar Excel
+            </a>
+            <Link href="/suministracion/entregas/nuevo" className="btn-primary">
+              + Nueva entrega
+            </Link>
+          </div>
         )}
       </div>
       <p className="text-sm text-neutral-500 mb-6">Manual Interno Cap. VIII — código EN-</p>

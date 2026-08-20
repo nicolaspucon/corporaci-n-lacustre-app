@@ -18,7 +18,18 @@ export default async function TrasladoDetallePage({ params }: { params: { id: st
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-brand mb-1">Traslado {traslado.codigo}</h1>
+        <div className="flex items-center gap-2 mb-1">
+          <h1 className="text-xl font-bold text-brand">Traslado {traslado.codigo}</h1>
+          <span
+            className={
+              traslado.estado === 'completado'
+                ? 'text-xs font-semibold text-brand bg-brand-pale rounded-full px-3 py-1'
+                : 'text-xs font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1'
+            }
+          >
+            {traslado.estado === 'completado' ? 'Completado' : 'En curso'}
+          </span>
+        </div>
         <p className="text-sm text-neutral-500 capitalize">{traslado.tipo}</p>
       </div>
 
@@ -29,7 +40,15 @@ export default async function TrasladoDetallePage({ params }: { params: { id: st
         <p><span className="text-neutral-500">Salida:</span> {traslado.fecha_salida ? new Date(traslado.fecha_salida).toLocaleString('es-CL') : '—'}</p>
         <p><span className="text-neutral-500">Llegada:</span> {traslado.fecha_llegada ? new Date(traslado.fecha_llegada).toLocaleString('es-CL') : 'Pendiente'}</p>
         <p><span className="text-neutral-500">Lote:</span> {(traslado.lote as any)?.codigo ?? '—'}</p>
-        <p><span className="text-neutral-500">Entrega asociada:</span> {(traslado.entrega as any)?.codigo ?? '—'}</p>
+        <p>
+          <span className="text-neutral-500">Entrega asociada:</span> {(traslado.entrega as any)?.codigo ?? '—'}
+          {traslado.entrega_id && (
+            <span className="text-xs text-neutral-400">
+              {' '}
+              ({traslado.fecha_llegada ? 'marcada como trasladada al registrar la llegada' : 'se marcará como trasladada al registrar la llegada'})
+            </span>
+          )}
+        </p>
         <p><span className="text-neutral-500">Cantidad:</span> {traslado.cantidad ?? '—'}</p>
         <p><span className="text-neutral-500">Autorización:</span> {traslado.autorizacion ?? '—'}</p>
         <p><span className="text-neutral-500">Observaciones:</span> {traslado.observaciones ?? '—'}</p>

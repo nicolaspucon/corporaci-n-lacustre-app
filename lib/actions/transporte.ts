@@ -27,6 +27,7 @@ export async function crearTraslado(formData: FormData) {
     cantidad: str(formData, 'cantidad'),
     autorizacion: str(formData, 'autorizacion'),
     observaciones: str(formData, 'observaciones'),
+    estado: 'en_curso',
   };
 
   const { data, error } = await supabase.from('traslados').insert(payload).select('id').single();
@@ -38,10 +39,27 @@ export async function crearTraslado(formData: FormData) {
   redirect(`/transporte/${data!.id}`);
 }
 
+// Al registrar la llegada, se cierra el ciclo del traslado (estado
+// 'completado') y, si el traslado está vinculado a una entrega, esa entrega
+// queda marcada como trasladada — así el expediente de la entrega refleja
+// automáticamente que el producto efectivamente llegó a destino.
 export async function registrarLlegada(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('traslado_id'));
-  await supabase.from('traslados').update({ fecha_llegada: new Date().toISOString() }).eq('id', id);
+
+  const { data: traslado } = await supabase.from('traslados').select('entrega_id').eq('id', id).maybeSingle();
+
+  await supabase
+    .from('traslados')
+    .update({ fecha_llegada: new Date().toISOString(), estado: 'completado' })
+    .eq('id', id);
+
+  if (traslado?.entrega_id) {
+    await supabase.from('entregas').update({ trasladado: true }).eq('id', traslado.entrega_id);
+    revalidatePath(`/suministracion/entregas/${traslado.entrega_id}`);
+    revalidatePath('/suministracion/entregas');
+  }
+
   revalidatePath(`/transporte/${id}`);
   revalidatePath('/transporte');
 }

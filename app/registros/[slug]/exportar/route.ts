@@ -23,6 +23,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
   if (entity.fields.some((f) => f.type === 'planta')) relations.push('planta:plantas(codigo)');
   const responsableCol = getResponsableColumn(entity);
   if (responsableCol) relations.push(`resp_join:profiles!${responsableCol}(nombre_completo)`);
+  relations.push('anulador:profiles!anulado_por(nombre_completo)');
   const selectStr = ['*', ...relations].join(', ');
 
   const query = supabase.from(entity.table).select(selectStr);
@@ -54,6 +55,10 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
     ...(entity.fields.some((f) => f.type === 'photo') ? ['Fotografía'] : []),
     ...(responsableCol ? ['Registrado por'] : []),
     'Firmado',
+    'Estado',
+    'Anulado el',
+    'Anulado por',
+    'Motivo de anulación',
   ];
 
   const lines = [headers.map(csvEscape).join(',')];
@@ -72,6 +77,10 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
       cells.push(row.resp_join?.nombre_completo ?? '');
     }
     cells.push(firmados.has(row.id) ? 'Sí' : 'No');
+    cells.push(row.anulado_en ? 'Anulado' : 'Vigente');
+    cells.push(row.anulado_en ? new Date(row.anulado_en).toLocaleString('es-CL') : '');
+    cells.push(row.anulado_en ? row.anulador?.nombre_completo ?? '' : '');
+    cells.push(row.motivo_anulacion ?? '');
     lines.push(cells.map(csvEscape).join(','));
   }
 

@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
-import { actualizarResultadoEsqueje, promoverEsquejeALote, eliminarEsqueje } from '@/lib/actions/agricola';
-import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
+import { actualizarResultadoEsqueje, promoverEsquejeALote, anularEsqueje } from '@/lib/actions/agricola';
+import AnularForm from '@/components/AnularForm';
+import AnuladoBanner from '@/components/AnuladoBanner';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -24,11 +25,14 @@ export default async function EsquejeDetallePage({
 
   const { data: esqueje } = await supabase
     .from('esquejes')
-    .select('*, madre:plantas_madre(codigo, variedad), lote:lotes(codigo)')
+    .select(
+      '*, madre:plantas_madre(codigo, variedad), lote:lotes(codigo), anulador:profiles!anulado_por(nombre_completo), editor:profiles!updated_by(nombre_completo)'
+    )
     .eq('id', params.id)
     .single();
 
   if (!esqueje) notFound();
+  const anulado = !!esqueje.anulado_en;
 
   const madre = esqueje.madre as any;
   const lote = esqueje.lote as any;
@@ -42,7 +46,16 @@ export default async function EsquejeDetallePage({
         <p className="text-sm text-neutral-500">
           {ESTADO_LABELS[esqueje.estado] ?? esqueje.estado} · {esqueje.fecha}
         </p>
+        {esqueje.updated_at && (
+          <p className="text-xs text-neutral-400 mt-1">
+            Última edición: {new Date(esqueje.updated_at).toLocaleString('es-CL')} · {esqueje.editor?.nombre_completo ?? '—'}
+          </p>
+        )}
       </div>
+
+      {anulado && (
+        <AnuladoBanner fecha={esqueje.anulado_en} anuladoPor={esqueje.anulador?.nombre_completo} motivo={esqueje.motivo_anulacion} />
+      )}
 
       {searchParams?.error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
@@ -68,7 +81,7 @@ export default async function EsquejeDetallePage({
         )}
       </div>
 
-      {esqueje.estado === 'enraizamiento' && (
+      {!anulado && esqueje.estado === 'enraizamiento' && (
         <section>
           <h2 className="font-semibold text-brand mb-2">Registrar resultado de enraizamiento</h2>
           <p className="text-sm text-neutral-500 mb-3">
@@ -96,7 +109,7 @@ export default async function EsquejeDetallePage({
         </section>
       )}
 
-      {esqueje.estado === 'listo' && (
+      {!anulado && esqueje.estado === 'listo' && (
         <section>
           <h2 className="font-semibold text-brand mb-2">Pasar a vegetación (crear lote)</h2>
           <p className="text-sm text-neutral-500 mb-3">
@@ -162,15 +175,7 @@ export default async function EsquejeDetallePage({
         </section>
       )}
 
-      <form action={eliminarEsqueje} className="pt-2">
-        <input type="hidden" name="esqueje_id" value={esqueje.id} />
-        <ConfirmSubmitButton
-          confirmText="¿Eliminar este esquejado? Esta acción no se puede deshacer."
-          className="text-sm text-red-600 hover:underline"
-        >
-          Eliminar esquejado
-        </ConfirmSubmitButton>
-      </form>
+      {!anulado && <AnularForm action={anularEsqueje} idField="esqueje_id" idValue={esqueje.id} label="esquejado" />}
     </div>
   );
 }

@@ -20,7 +20,8 @@ function claveLote(m: { lote_id: string | null; codigo: string | null }) {
 export async function calcularStockInventario(supabase: any): Promise<{ porLote: StockLote[]; totalDisponible: number }> {
   const { data: movimientos } = await supabase
     .from('registros_inventario')
-    .select('lote_id, codigo, tipo_movimiento, cantidad_g, lote:lotes(codigo, cultivo_genetica)');
+    .select('lote_id, codigo, tipo_movimiento, cantidad_g, lote:lotes(codigo, cultivo_genetica)')
+    .is('anulado_en', null);
 
   const porLoteMap = new Map<string, StockLote>();
 
@@ -63,7 +64,8 @@ export async function saldoActualLote(supabase: any, loteId: string): Promise<nu
   const { data } = await supabase
     .from('registros_inventario')
     .select('tipo_movimiento, cantidad_g')
-    .eq('lote_id', loteId);
+    .eq('lote_id', loteId)
+    .is('anulado_en', null);
 
   let saldo = 0;
   for (const m of data ?? []) {

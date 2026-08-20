@@ -9,23 +9,40 @@ const ESTADO_LABELS: Record<string, string> = {
   descartado: 'Descartado',
 };
 
-export default async function EsquejesPage() {
+export default async function EsquejesPage({ searchParams }: { searchParams?: { ver?: string } }) {
   await requireStaff();
   const supabase = createClient();
+  const verAnulados = searchParams?.ver === 'anulados';
 
-  const { data, error } = await supabase
+  const query = supabase
     .from('esquejes')
     .select('id, codigo, variedad, fecha, cantidad_realizados, cantidad_enraizadas, cantidad_perdidas, estado, lote:lotes(codigo)')
     .order('fecha', { ascending: false })
     .limit(500);
+  if (verAnulados) query.not('anulado_en', 'is', null);
+  else query.is('anulado_en', null);
+
+  const { data, error } = await query;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-brand">Esquejes (propagación)</h1>
-        <Link href="/agricola/esquejes/nuevo" className="btn-primary">
-          + Nuevo esquejado
-        </Link>
+        <h1 className="text-xl font-bold text-brand">
+          Esquejes (propagación){verAnulados && <span className="text-neutral-400 font-normal"> — anulados</span>}
+        </h1>
+        <div className="flex gap-3">
+          <Link href={verAnulados ? '/agricola/esquejes' : '/agricola/esquejes?ver=anulados'} className="btn-secondary">
+            {verAnulados ? 'Ver vigentes' : 'Ver anulados'}
+          </Link>
+          <a href="/agricola/esquejes/exportar" className="btn-secondary">
+            Descargar Excel
+          </a>
+          {!verAnulados && (
+            <Link href="/agricola/esquejes/nuevo" className="btn-primary">
+              + Nuevo esquejado
+            </Link>
+          )}
+        </div>
       </div>
       <p className="text-sm text-neutral-500 mb-6">
         Planilla de esquejado: cuántas unidades se sacaron por variedad y cuántas enraizaron sanas. Todavía no
@@ -56,7 +73,7 @@ export default async function EsquejesPage() {
             {(data ?? []).length === 0 && (
               <tr>
                 <td colSpan={8} className="text-center text-neutral-500 py-8">
-                  Sin esquejados registrados todavía.
+                  {verAnulados ? 'Sin esquejados anulados.' : 'Sin esquejados registrados todavía.'}
                 </td>
               </tr>
             )}

@@ -10,11 +10,43 @@ export default async function SolicitudDetallePage({ params }: { params: { id: s
 
   const { data: solicitud } = await supabase
     .from('solicitudes_suministro')
-    .select('*, socio:socios(cus, nombre_completo)')
+    .select('*, socio:socios(cus, nombre_completo, estado)')
     .eq('id', params.id)
     .single();
 
   if (!solicitud) notFound();
+
+  const socioId = solicitud.socio_id as string;
+  const inicioMes = new Date();
+  inicioMes.setDate(1);
+  const inicioMesStr = inicioMes.toISOString().slice(0, 10);
+  const [{ data: ficha }, { data: solicitudesMes }] = await Promise.all([
+    supabase
+      .from('fichas_perfil')
+      .select('vigencia_receta, rango_maximo_g, consumo_mensual_estimado_g')
+      .eq('socio_id', socioId)
+      .maybeSingle(),
+    supabase
+      .from('solicitudes_suministro')
+      .select('cantidad_solicitada_g')
+      .eq('socio_id', socioId)
+      .gte('fecha', inicioMesStr),
+  ]);
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const tope = ficha?.rango_maximo_g ?? ficha?.consumo_mensual_estimado_g ?? null;
+  const solicitadoMes = (solicitudesMes ?? []).reduce((sum, s) => sum + (Number(s.cantidad_solicitada_g) || 0), 0);
+  const advertencias: string[] = [];
+  const socioEstado = (solicitud.socio as any)?.estado;
+  if (socioEstado && socioEstado !== 'activo') {
+    advertencias.push(`El socio no está activo (estado: ${socioEstado}).`);
+  }
+  if (ficha?.vigencia_receta && ficha.vigencia_receta < hoy) {
+    advertencias.push(`La receta médica venció el ${ficha.vigencia_receta}.`);
+  }
+  if (tope != null && solicitadoMes > tope) {
+    advertencias.push(`El socio ya lleva ${solicitadoMes} g solicitados este mes, sobre un tope de ${tope} g.`);
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -31,6 +63,17 @@ export default async function SolicitudDetallePage({ params }: { params: { id: s
         <p><span className="text-neutral-500">Observaciones:</span> {solicitud.observaciones ?? '—'}</p>
         <p><span className="text-neutral-500">Resolución actual:</span> <span className="capitalize">{solicitud.resolucion.replace('_', ' ')}</span></p>
       </div>
+
+      {advertencias.length > 0 && (
+        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+          <p className="font-semibold mb-1">Antes de aprobar, ten en cuenta:</p>
+          <ul className="list-disc pl-5 space-y-0.5">
+            {advertencias.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form action={resolverSolicitud} className="card p-6 space-y-4">
         <input type="hidden" name="solicitud_id" value={solicitud.id} />

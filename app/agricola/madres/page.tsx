@@ -2,23 +2,40 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
 import Link from 'next/link';
 
-export default async function MadresPage() {
+export default async function MadresPage({ searchParams }: { searchParams?: { ver?: string } }) {
   await requireStaff();
   const supabase = createClient();
+  const verAnulados = searchParams?.ver === 'anulados';
 
-  const { data, error } = await supabase
+  const query = supabase
     .from('plantas_madre')
     .select('id, codigo, variedad, fecha_inicio, estado, ubicacion')
     .order('codigo', { ascending: false })
     .limit(500);
+  if (verAnulados) query.not('anulado_en', 'is', null);
+  else query.is('anulado_en', null);
+
+  const { data, error } = await query;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-brand">Plantas madre</h1>
-        <Link href="/agricola/madres/nuevo" className="btn-primary">
-          + Nueva madre
-        </Link>
+        <h1 className="text-xl font-bold text-brand">
+          Plantas madre{verAnulados && <span className="text-neutral-400 font-normal"> — anuladas</span>}
+        </h1>
+        <div className="flex gap-3">
+          <Link href={verAnulados ? '/agricola/madres' : '/agricola/madres?ver=anulados'} className="btn-secondary">
+            {verAnulados ? 'Ver vigentes' : 'Ver anuladas'}
+          </Link>
+          <a href="/agricola/madres/exportar" className="btn-secondary">
+            Descargar Excel
+          </a>
+          {!verAnulados && (
+            <Link href="/agricola/madres/nuevo" className="btn-primary">
+              + Nueva madre
+            </Link>
+          )}
+        </div>
       </div>
       <p className="text-sm text-neutral-500 mb-6">
         Plantas mantenidas en vegetativo permanente para extraer esquejes — no pertenecen a un lote.
@@ -46,7 +63,7 @@ export default async function MadresPage() {
             {(data ?? []).length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center text-neutral-500 py-8">
-                  Sin plantas madre registradas todavía.
+                  {verAnulados ? 'Sin plantas madre anuladas.' : 'Sin plantas madre registradas todavía.'}
                 </td>
               </tr>
             )}

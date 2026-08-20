@@ -259,7 +259,7 @@ export const ENTITIES: EntityDef[] = [
       { key: 'motivo', label: 'Motivo', type: 'text' },
       { key: 'fecha', label: 'Fecha', type: 'date', required: true },
       { key: 'hora_ingreso', label: 'Hora de ingreso', type: 'time' },
-      { key: 'hora_salida', label: 'Hora de salida', type: 'time' },
+      { key: 'hora_salida', label: 'Hora de salida', type: 'time', faseFinal: true, required: true },
     ],
   },
   {
@@ -276,6 +276,8 @@ export const ENTITIES: EntityDef[] = [
       { key: 'personas_involucradas', label: 'Personas involucradas', type: 'text' },
       { key: 'medidas_inmediatas', label: 'Medidas inmediatas adoptadas', type: 'textarea' },
       { key: 'estado', label: 'Estado', type: 'select', options: ['abierto', 'en_investigacion', 'cerrado'] },
+      { key: 'fecha_cierre', label: 'Fecha de cierre', type: 'date', faseFinal: true, required: true },
+      { key: 'verificacion_eficacia', label: 'Verificación de eficacia', type: 'text', faseFinal: true, required: true },
     ],
   },
   {
@@ -289,8 +291,8 @@ export const ENTITIES: EntityDef[] = [
       { key: 'descripcion', label: 'Descripción de la no conformidad', type: 'textarea' },
       { key: 'causa', label: 'Causa identificada', type: 'text' },
       { key: 'medida_correctiva', label: 'Medida correctiva adoptada', type: 'textarea' },
-      { key: 'fecha_cierre', label: 'Fecha de cierre', type: 'date' },
-      { key: 'verificacion_eficacia', label: 'Verificación de eficacia', type: 'text' },
+      { key: 'fecha_cierre', label: 'Fecha de cierre', type: 'date', faseFinal: true, required: true },
+      { key: 'verificacion_eficacia', label: 'Verificación de eficacia', type: 'text', faseFinal: true, required: true },
     ],
   },
   {

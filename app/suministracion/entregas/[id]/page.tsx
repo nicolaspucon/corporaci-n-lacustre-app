@@ -71,7 +71,8 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
 
       {isStaff && yaTieneTraslado && (
         <p className="text-sm text-brand bg-brand-pale rounded px-3 py-2">
-          Ya existe un traslado registrado para esta entrega ({traslados![0].codigo}).
+          Ya existe un traslado registrado para esta entrega ({traslados![0].codigo}).{' '}
+          {entrega.trasladado ? 'El traslado ya llegó a destino.' : 'El traslado todavía está en curso.'}
         </p>
       )}
 

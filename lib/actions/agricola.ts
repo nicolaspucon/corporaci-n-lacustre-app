@@ -92,7 +92,8 @@ export async function actualizarEstadoLote(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('lote_id'));
   const estado = String(formData.get('estado'));
-  const patch: Record<string, unknown> = { estado };
+  const user = await usuarioActual(supabase);
+  const patch: Record<string, unknown> = { estado, updated_at: new Date().toISOString(), updated_by: user?.id ?? null };
   if (estado === 'cerrado') {
     patch.fecha_cierre = new Date().toISOString().slice(0, 10);
     const evaluacion = str(formData, 'evaluacion_final');
@@ -109,10 +110,13 @@ export async function actualizarEstadoLote(formData: FormData) {
 export async function actualizarGeneticaLote(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('lote_id'));
+  const user = await usuarioActual(supabase);
   const patch = {
     banco_semillas: str(formData, 'banco_semillas'),
     thc_pct: num(formData, 'thc_pct'),
     cbd_pct: num(formData, 'cbd_pct'),
+    updated_at: new Date().toISOString(),
+    updated_by: user?.id ?? null,
   };
   await supabase.from('lotes').update(patch).eq('id', id);
   revalidatePath(`/agricola/lotes/${id}`);
@@ -147,6 +151,7 @@ export async function crearPlanta(formData: FormData) {
 export async function actualizarPlanta(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('planta_id'));
+  const user = await usuarioActual(supabase);
   const patch = {
     estado_sanitario: str(formData, 'estado_sanitario'),
     ubicacion: str(formData, 'ubicacion'),
@@ -155,6 +160,8 @@ export async function actualizarPlanta(formData: FormData) {
     banco_semillas: str(formData, 'banco_semillas'),
     thc_pct: num(formData, 'thc_pct'),
     cbd_pct: num(formData, 'cbd_pct'),
+    updated_at: new Date().toISOString(),
+    updated_by: user?.id ?? null,
   };
   await supabase.from('plantas').update(patch).eq('id', id);
   revalidatePath(`/agricola/plantas/${id}`);
@@ -198,7 +205,11 @@ export async function actualizarEstadoMadre(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('madre_id'));
   const estado = String(formData.get('estado'));
-  await supabase.from('plantas_madre').update({ estado }).eq('id', id);
+  const user = await usuarioActual(supabase);
+  await supabase
+    .from('plantas_madre')
+    .update({ estado, updated_at: new Date().toISOString(), updated_by: user?.id ?? null })
+    .eq('id', id);
   revalidatePath(`/agricola/madres/${id}`);
   revalidatePath('/agricola/madres');
 }
@@ -207,10 +218,13 @@ export async function actualizarEstadoMadre(formData: FormData) {
 export async function actualizarGeneticaMadre(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('madre_id'));
+  const user = await usuarioActual(supabase);
   const patch = {
     banco_semillas: str(formData, 'banco_semillas'),
     thc_pct: num(formData, 'thc_pct'),
     cbd_pct: num(formData, 'cbd_pct'),
+    updated_at: new Date().toISOString(),
+    updated_by: user?.id ?? null,
   };
   await supabase.from('plantas_madre').update(patch).eq('id', id);
   revalidatePath(`/agricola/madres/${id}`);
@@ -293,6 +307,7 @@ export async function actualizarResultadoEsqueje(formData: FormData) {
   }
 
   const cantidad_perdidas = esqueje!.cantidad_realizados - cantidad_enraizadas!;
+  const user = await usuarioActual(supabase);
 
   await supabase
     .from('esquejes')
@@ -300,6 +315,8 @@ export async function actualizarResultadoEsqueje(formData: FormData) {
       cantidad_enraizadas,
       cantidad_perdidas,
       estado: cantidad_enraizadas! > 0 ? 'listo' : 'descartado',
+      updated_at: new Date().toISOString(),
+      updated_by: user?.id ?? null,
     })
     .eq('id', id);
 
@@ -376,28 +393,35 @@ export async function promoverEsquejeALote(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------
-// Eliminar (para corregir errores de ingreso)
+// Anular (para corregir errores de ingreso, sin borrar el historial)
 // ---------------------------------------------------------------------
 
-export async function eliminarLote(formData: FormData) {
+async function usuarioActual(supabase: ReturnType<typeof createClient>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+}
+
+export async function anularLote(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('lote_id') || '');
+  const motivo = String(formData.get('motivo') || '').trim();
   if (!id) redirect('/agricola/lotes');
+  if (!motivo) {
+    redirect(`/agricola/lotes/${id}?error=` + encodeURIComponent('Debes indicar el motivo de la anulación.'));
+  }
 
-  // Limpieza completa: si fue un error, se eliminan también las fichas de
-  // planta que se generaron automáticamente para este lote.
-  await supabase.from('plantas').delete().eq('lote_id', id);
+  const user = await usuarioActual(supabase);
+  const now = new Date().toISOString();
+  const patch = { anulado_en: now, anulado_por: user?.id ?? null, motivo_anulacion: motivo };
 
-  const { error } = await supabase.from('lotes').delete().eq('id', id);
+  // Si fue un error, se anulan también las fichas de planta generadas
+  // automáticamente para este lote, con el mismo motivo.
+  await supabase.from('plantas').update(patch).eq('lote_id', id).is('anulado_en', null);
+
+  const { error } = await supabase.from('lotes').update(patch).eq('id', id);
   if (error) {
-    if (error.code === '23503') {
-      redirect(
-        `/agricola/lotes/${id}?error=` +
-          encodeURIComponent(
-            'No se puede eliminar: este lote ya tiene registros asociados (secado, curado, entregas, inventario, etc.). Si fue un error, corrige sus datos o cámbiale el estado a "cerrado" en vez de eliminarlo.'
-          )
-      );
-    }
     redirect(`/agricola/lotes/${id}?error=` + encodeURIComponent(error.message));
   }
 
@@ -407,19 +431,22 @@ export async function eliminarLote(formData: FormData) {
   redirect('/agricola/lotes');
 }
 
-export async function eliminarPlanta(formData: FormData) {
+export async function anularPlanta(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('planta_id') || '');
+  const motivo = String(formData.get('motivo') || '').trim();
   if (!id) redirect('/agricola/plantas');
+  if (!motivo) {
+    redirect(`/agricola/plantas/${id}?error=` + encodeURIComponent('Debes indicar el motivo de la anulación.'));
+  }
 
-  const { error } = await supabase.from('plantas').delete().eq('id', id);
+  const user = await usuarioActual(supabase);
+  const { error } = await supabase
+    .from('plantas')
+    .update({ anulado_en: new Date().toISOString(), anulado_por: user?.id ?? null, motivo_anulacion: motivo })
+    .eq('id', id);
+
   if (error) {
-    if (error.code === '23503') {
-      redirect(
-        `/agricola/plantas/${id}?error=` +
-          encodeURIComponent('No se puede eliminar: esta planta ya tiene registros asociados (riego, manejos, etc.).')
-      );
-    }
     redirect(`/agricola/plantas/${id}?error=` + encodeURIComponent(error.message));
   }
 
@@ -427,21 +454,22 @@ export async function eliminarPlanta(formData: FormData) {
   redirect('/agricola/plantas');
 }
 
-export async function eliminarMadre(formData: FormData) {
+export async function anularMadre(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('madre_id') || '');
+  const motivo = String(formData.get('motivo') || '').trim();
   if (!id) redirect('/agricola/madres');
+  if (!motivo) {
+    redirect(`/agricola/madres/${id}?error=` + encodeURIComponent('Debes indicar el motivo de la anulación.'));
+  }
 
-  const { error } = await supabase.from('plantas_madre').delete().eq('id', id);
+  const user = await usuarioActual(supabase);
+  const { error } = await supabase
+    .from('plantas_madre')
+    .update({ anulado_en: new Date().toISOString(), anulado_por: user?.id ?? null, motivo_anulacion: motivo })
+    .eq('id', id);
+
   if (error) {
-    if (error.code === '23503') {
-      redirect(
-        `/agricola/madres/${id}?error=` +
-          encodeURIComponent(
-            'No se puede eliminar: esta madre ya tiene esquejes registrados. Si ya no se usa, cámbiale el estado a "retirada" en vez de eliminarla.'
-          )
-      );
-    }
     redirect(`/agricola/madres/${id}?error=` + encodeURIComponent(error.message));
   }
 
@@ -449,19 +477,22 @@ export async function eliminarMadre(formData: FormData) {
   redirect('/agricola/madres');
 }
 
-export async function eliminarEsqueje(formData: FormData) {
+export async function anularEsqueje(formData: FormData) {
   const supabase = createClient();
   const id = String(formData.get('esqueje_id') || '');
+  const motivo = String(formData.get('motivo') || '').trim();
   if (!id) redirect('/agricola/esquejes');
+  if (!motivo) {
+    redirect(`/agricola/esquejes/${id}?error=` + encodeURIComponent('Debes indicar el motivo de la anulación.'));
+  }
 
-  const { error } = await supabase.from('esquejes').delete().eq('id', id);
+  const user = await usuarioActual(supabase);
+  const { error } = await supabase
+    .from('esquejes')
+    .update({ anulado_en: new Date().toISOString(), anulado_por: user?.id ?? null, motivo_anulacion: motivo })
+    .eq('id', id);
+
   if (error) {
-    if (error.code === '23503') {
-      redirect(
-        `/agricola/esquejes/${id}?error=` +
-          encodeURIComponent('No se puede eliminar: este esquejado ya pasó a un lote. Si fue un error, elimina primero ese lote.')
-      );
-    }
     redirect(`/agricola/esquejes/${id}?error=` + encodeURIComponent(error.message));
   }
 

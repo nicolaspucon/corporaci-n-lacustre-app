@@ -3,6 +3,7 @@ import { getSessionProfile } from '@/lib/auth';
 import { calcularPlantasActivas } from '@/lib/plantasActivas';
 import { calcularStockInventario } from '@/lib/inventario';
 import { calcularBalanceProduccion } from '@/lib/balance';
+import { calcularVencimientos } from '@/lib/vencimientos';
 import BalanceProduccion from '@/components/BalanceProduccion';
 import Link from 'next/link';
 
@@ -14,16 +15,28 @@ export default async function DashboardPage() {
     return <PanelSocio profile={profile} />;
   }
 
-  const [{ count: socios }, { count: lotes }, { count: incidentesAbiertos }, { count: solicitudesPendientes }, resumenPlantas, resumenStock, balance] =
-    await Promise.all([
-      supabase.from('socios').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
-      supabase.from('lotes').select('*', { count: 'exact', head: true }).not('estado', 'in', '(cerrado)'),
-      supabase.from('incidentes').select('*', { count: 'exact', head: true }).neq('estado', 'cerrado'),
-      supabase.from('solicitudes_suministro').select('*', { count: 'exact', head: true }).eq('resolucion', 'pendiente'),
-      calcularPlantasActivas(supabase),
-      calcularStockInventario(supabase),
-      calcularBalanceProduccion(supabase),
-    ]);
+  const [
+    { count: socios },
+    { count: lotes },
+    { count: incidentesAbiertos },
+    { count: solicitudesPendientes },
+    resumenPlantas,
+    resumenStock,
+    balance,
+    vencimientos,
+  ] = await Promise.all([
+    supabase.from('socios').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
+    supabase.from('lotes').select('*', { count: 'exact', head: true }).not('estado', 'in', '(cerrado)'),
+    supabase.from('incidentes').select('*', { count: 'exact', head: true }).neq('estado', 'cerrado'),
+    supabase.from('solicitudes_suministro').select('*', { count: 'exact', head: true }).eq('resolucion', 'pendiente'),
+    calcularPlantasActivas(supabase),
+    calcularStockInventario(supabase),
+    calcularBalanceProduccion(supabase),
+    calcularVencimientos(supabase),
+  ]);
+
+  const vencidos = vencimientos.filter((v) => v.vencido);
+  const porVencer = vencimientos.filter((v) => !v.vencido);
 
   const stats = [
     { label: 'Socios activos', value: socios ?? 0, href: '/socios' },
@@ -56,6 +69,56 @@ export default async function DashboardPage() {
         mesesCobertura={balance.mesesCobertura}
         proyeccionPorMes={balance.proyeccionPorMes}
       />
+
+      {vencimientos.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-semibold text-brand mb-3">
+            Vencimientos de socios activos (próximos 30 días)
+          </h2>
+          <div className="card overflow-x-auto">
+            <table className="data-table w-full border-collapse">
+              <thead>
+                <tr>
+                  <th>Socio</th>
+                  <th>Tipo</th>
+                  <th>Detalle</th>
+                  <th>Vencimiento</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vencimientos.map((v, i) => (
+                  <tr key={i}>
+                    <td>
+                      <Link href={`/socios/${v.socioId}`} className="text-brand underline">
+                        {v.socioCus} — {v.socioNombre}
+                      </Link>
+                    </td>
+                    <td className="capitalize">{v.tipo}</td>
+                    <td>{v.detalle}</td>
+                    <td>{new Date(v.fechaVencimiento).toLocaleDateString('es-CL')}</td>
+                    <td>
+                      <span
+                        className={
+                          v.vencido
+                            ? 'text-xs font-semibold text-red-600 bg-red-50 rounded-full px-3 py-1'
+                            : 'text-xs font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1'
+                        }
+                      >
+                        {v.vencido ? `Vencido hace ${Math.abs(v.diasRestantes)} días` : `Vence en ${v.diasRestantes} días`}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-neutral-400 mt-2">
+            {vencidos.length} ya vencido(s) · {porVencer.length} por vencer — calculado automáticamente desde la
+            ficha de perfil (vigencia de receta) y los documentos del expediente de cada socio activo.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

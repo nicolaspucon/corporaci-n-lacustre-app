@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
 import { getEntity, getResponsableColumn } from '@/lib/entities';
-import { eliminarRegistro, confirmarIngreso, actualizarRegistro } from '@/lib/actions/registros';
+import { anularRegistro, confirmarIngreso, actualizarRegistro } from '@/lib/actions/registros';
 import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 import SignaturePad from '@/components/SignaturePad';
 import { notFound } from 'next/navigation';
@@ -24,6 +24,8 @@ export default async function RegistroDetallePage({
   if (entity.fields.some((f) => f.type === 'planta')) relations.push('planta:plantas(codigo)');
   const responsableCol = getResponsableColumn(entity);
   if (responsableCol) relations.push(`resp_join:profiles!${responsableCol}(nombre_completo)`);
+  relations.push('anulador:profiles!anulado_por(nombre_completo)');
+  relations.push('editor:profiles!updated_by(nombre_completo)');
   const selectStr = ['*', ...relations].join(', ');
 
   const {
@@ -53,6 +55,7 @@ export default async function RegistroDetallePage({
 
   const r = registro as any;
   const firma = (firmas ?? [])[0] ?? null;
+  const anulado = !!r.anulado_en;
 
   const fotoField = entity.fields.find((f) => f.type === 'photo' && !f.faseFinal);
   let fotoUrl: string | null = null;
@@ -84,6 +87,13 @@ export default async function RegistroDetallePage({
         </p>
       )}
 
+      {anulado && (
+        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+          Registro anulado el {new Date(r.anulado_en).toLocaleString('es-CL')} por{' '}
+          {r.anulador?.nombre_completo ?? '—'}. Motivo: {r.motivo_anulacion ?? '—'}
+        </p>
+      )}
+
       <div className="card p-6 space-y-3">
         {entity.fields
           .filter((f) => f.type !== 'photo')
@@ -110,6 +120,14 @@ export default async function RegistroDetallePage({
             <p className="col-span-2 font-medium">{r.resp_join?.nombre_completo ?? '—'}</p>
           </div>
         )}
+        {r.updated_at && (
+          <div className="grid grid-cols-3 gap-2 text-sm border-t border-neutral-100 pt-3">
+            <p className="text-neutral-500">Última edición</p>
+            <p className="col-span-2 font-medium">
+              {new Date(r.updated_at).toLocaleString('es-CL')} · {r.editor?.nombre_completo ?? '—'}
+            </p>
+          </div>
+        )}
       </div>
 
       {fotoField && (
@@ -124,7 +142,7 @@ export default async function RegistroDetallePage({
         </div>
       )}
 
-      {camposFaseFinalPendientes.length > 0 && (
+      {!anulado && camposFaseFinalPendientes.length > 0 && (
         <div className="card p-6">
           <h2 className="font-semibold text-brand mb-1">Completar {entity.label.toLowerCase()} — etapa final</h2>
           <p className="text-sm text-neutral-500 mb-4">
@@ -142,7 +160,7 @@ export default async function RegistroDetallePage({
                 </label>
 
                 {field.type === 'textarea' && (
-                  <textarea className="input" id={field.key} name={field.key} rows={3} />
+                  <textarea className="input" id={field.key} name={field.key} rows={3} required={field.required} />
                 )}
 
                 {field.type === 'boolean' && (
@@ -157,6 +175,7 @@ export default async function RegistroDetallePage({
                     type="file"
                     accept="image/*"
                     capture="environment"
+                    required={field.required}
                   />
                 )}
 
@@ -167,6 +186,7 @@ export default async function RegistroDetallePage({
                     name={field.key}
                     type={field.type}
                     step={field.type === 'number' ? 'any' : undefined}
+                    required={field.required}
                   />
                 )}
               </div>
@@ -185,6 +205,8 @@ export default async function RegistroDetallePage({
           <p className="text-sm text-brand bg-brand-pale rounded px-3 py-2">
             Firmado por {firma.firmante_nombre} — {new Date(firma.created_at).toLocaleString('es-CL')}.
           </p>
+        ) : anulado ? (
+          <p className="text-sm text-neutral-400">Registro anulado: no corresponde firmar.</p>
         ) : (
           <SignaturePad
             contexto={entity.table}
@@ -194,7 +216,7 @@ export default async function RegistroDetallePage({
         )}
       </div>
 
-      {entity.implicaIngreso && (!visitaHoy || visitaHoy.length === 0) && (
+      {!anulado && entity.implicaIngreso && (!visitaHoy || visitaHoy.length === 0) && (
         <div className="card p-6">
           <h2 className="font-semibold text-brand mb-2">¿Registrar tu ingreso de hoy?</h2>
           <p className="text-sm text-neutral-500 mb-3">
@@ -216,16 +238,32 @@ export default async function RegistroDetallePage({
         </div>
       )}
 
-      <form action={eliminarRegistro} className="pt-2">
-        <input type="hidden" name="__slug" value={entity.slug} />
-        <input type="hidden" name="id" value={params.id} />
-        <ConfirmSubmitButton
-          confirmText="¿Eliminar este registro? Esta acción no se puede deshacer."
-          className="text-sm text-red-600 hover:underline"
-        >
-          Eliminar registro
-        </ConfirmSubmitButton>
-      </form>
+      {!anulado && (
+        <div className="pt-2">
+          <h2 className="font-semibold text-red-700 mb-2 text-sm">Anular registro</h2>
+          <p className="text-xs text-neutral-500 mb-2">
+            No se elimina de la base de datos: queda oculto de la lista normal, pero se conserva con fecha,
+            usuario y motivo para poder demostrarlo ante una fiscalización.
+          </p>
+          <form action={anularRegistro} className="flex items-start gap-3">
+            <input type="hidden" name="__slug" value={entity.slug} />
+            <input type="hidden" name="id" value={params.id} />
+            <textarea
+              className="input flex-1"
+              name="motivo"
+              rows={2}
+              required
+              placeholder="Motivo de la anulación (obligatorio)"
+            />
+            <ConfirmSubmitButton
+              confirmText="¿Anular este registro? Quedará marcado como anulado y fuera de los cálculos, pero no se borra."
+              className="text-sm text-red-600 hover:underline whitespace-nowrap pt-2"
+            >
+              Anular registro
+            </ConfirmSubmitButton>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

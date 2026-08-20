@@ -31,10 +31,10 @@ export interface BalanceProduccion {
 
 export async function calcularBalanceProduccion(supabase: any): Promise<BalanceProduccion> {
   const [{ data: sociosActivos }, stock, { data: lotes }, { data: curadosFinalizados }] = await Promise.all([
-    supabase.from('socios').select('id').eq('estado', 'activo'),
+    supabase.from('socios').select('id').eq('estado', 'activo').is('anulado_en', null),
     calcularStockInventario(supabase),
-    supabase.from('lotes').select('id, codigo, estado, cultivo_genetica'),
-    supabase.from('registros_inventario').select('lote_id').not('origen_curado_id', 'is', null),
+    supabase.from('lotes').select('id, codigo, estado, cultivo_genetica').is('anulado_en', null),
+    supabase.from('registros_inventario').select('lote_id').not('origen_curado_id', 'is', null).is('anulado_en', null),
   ]);
 
   const socioIds = (sociosActivos ?? []).map((s: any) => s.id);
@@ -71,6 +71,7 @@ export async function calcularBalanceProduccion(supabase: any): Promise<BalanceP
           .from('plantas')
           .select('id, lote_id, fecha_cosecha, produccion_esperada_g, lote:lotes(codigo, cultivo_genetica)')
           .in('lote_id', loteIdsProyectables)
+          .is('anulado_en', null)
       : { data: [] as any[] };
 
   const porMes = new Map<string, ProyeccionMes>();

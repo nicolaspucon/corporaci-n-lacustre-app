@@ -10,10 +10,17 @@ export function generateStaticParams() {
   return ENTITIES.map((e) => ({ slug: e.slug }));
 }
 
-export default async function RegistroListPage({ params }: { params: { slug: string } }) {
+export default async function RegistroListPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams?: { ver?: string };
+}) {
   const entity = getEntity(params.slug);
   if (!entity) notFound();
 
+  const verAnulados = searchParams?.ver === 'anulados';
   const supabase = createClient();
 
   const relations: string[] = [];
@@ -21,9 +28,12 @@ export default async function RegistroListPage({ params }: { params: { slug: str
   if (entity.fields.some((f) => f.type === 'planta')) relations.push('planta:plantas(codigo)');
   const responsableCol = getResponsableColumn(entity);
   if (responsableCol) relations.push(`resp_join:profiles!${responsableCol}(nombre_completo)`);
+  relations.push('anulador:profiles!anulado_por(nombre_completo)');
   const selectStr = ['*', ...relations].join(', ');
 
   const query = supabase.from(entity.table).select(selectStr);
+  if (verAnulados) query.not('anulado_en', 'is', null);
+  else query.is('anulado_en', null);
   if (entity.orderBy) query.order(entity.orderBy, { ascending: false });
 
   const { data, error } = await query.limit(200);
@@ -43,14 +53,25 @@ export default async function RegistroListPage({ params }: { params: { slug: str
     firmados = new Set((firmas ?? []).map((f: any) => f.referencia_id));
   }
 
-  const rowsConFirma = rows.map((r) => ({ ...r, _firmado: firmados.has(r.id) ? 'Sí' : 'No' }));
+  const rowsConFirma = rows.map((r) => ({
+    ...r,
+    _firmado: firmados.has(r.id) ? 'Sí' : 'No',
+    _anulado_en: r.anulado_en ? new Date(r.anulado_en).toLocaleString('es-CL') : undefined,
+    _anulado_por: r.anulador?.nombre_completo,
+  }));
 
   const columns = [
     ...entity.fields
       .filter((f) => f.type !== 'photo')
       .map((f) => ({ key: f.key, label: f.label })),
     ...(responsableCol ? [{ key: 'resp_join', label: 'Registrado por' }] : []),
-    { key: '_firmado', label: 'Firmado' },
+    ...(verAnulados
+      ? [
+          { key: '_anulado_en', label: 'Anulado el' },
+          { key: '_anulado_por', label: 'Anulado por' },
+          { key: 'motivo_anulacion', label: 'Motivo' },
+        ]
+      : [{ key: '_firmado', label: 'Firmado' }]),
   ];
 
   const resumenPlantasActivas =
@@ -60,17 +81,34 @@ export default async function RegistroListPage({ params }: { params: { slug: str
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-brand">{entity.label}</h1>
+        <h1 className="text-xl font-bold text-brand">
+          {entity.label}
+          {verAnulados && <span className="text-neutral-400 font-normal"> — anulados</span>}
+        </h1>
         <div className="flex gap-3">
+          <Link
+            href={verAnulados ? `/registros/${entity.slug}` : `/registros/${entity.slug}?ver=anulados`}
+            className="btn-secondary"
+          >
+            {verAnulados ? 'Ver vigentes' : 'Ver anulados'}
+          </Link>
           <a href={`/registros/${entity.slug}/exportar`} className="btn-secondary">
             Descargar Excel
           </a>
-          <Link href={`/registros/${entity.slug}/nuevo`} className="btn-primary">
-            + Nuevo registro
-          </Link>
+          {!verAnulados && (
+            <Link href={`/registros/${entity.slug}/nuevo`} className="btn-primary">
+              + Nuevo registro
+            </Link>
+          )}
         </div>
       </div>
       <p className="text-sm text-neutral-500 mb-6">{entity.manualRef}</p>
+      {verAnulados && (
+        <p className="text-xs text-neutral-500 bg-neutral-50 border border-neutral-200 rounded px-3 py-2 mb-6">
+          Registros anulados: se conservan con fecha, quién los anuló y el motivo, en vez de borrarse. No
+          cuentan en los cálculos automáticos ni en los totales.
+        </p>
+      )}
 
       {error && (
         <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">

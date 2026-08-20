@@ -100,6 +100,20 @@ export default async function NuevaSolicitudPage({ searchParams }: { searchParam
           <textarea className="input" id="observaciones" name="observaciones" rows={3} />
         </div>
 
+        <div className="border-t pt-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="forzar_bloqueo" />
+            Forzar solicitud aunque no cumpla receta vigente / tope mensual
+          </label>
+          <p className="text-xs text-neutral-400 mt-1 mb-2">
+            El sistema valida automáticamente que el socio esté activo, que su receta esté vigente y que no
+            supere su tope mensual. Si necesitas continuar de todas formas, marca esta casilla e indica el
+            motivo — queda registrado en el historial.
+          </p>
+          <label className="label" htmlFor="justificacion_forzado">Justificación (obligatoria si forzaste)</label>
+          <input className="input" id="justificacion_forzado" name="justificacion_forzado" />
+        </div>
+
         <button type="submit" className="btn-primary">
           Enviar solicitud
         </button>

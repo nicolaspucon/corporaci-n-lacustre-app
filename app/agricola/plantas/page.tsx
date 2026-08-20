@@ -2,23 +2,40 @@ import { createClient } from '@/lib/supabase/server';
 import { requireStaff } from '@/lib/auth';
 import Link from 'next/link';
 
-export default async function PlantasPage() {
+export default async function PlantasPage({ searchParams }: { searchParams?: { ver?: string } }) {
   await requireStaff();
   const supabase = createClient();
+  const verAnulados = searchParams?.ver === 'anulados';
 
-  const { data, error } = await supabase
+  const query = supabase
     .from('plantas')
     .select('id, codigo, variedad, estado_sanitario, fecha_cosecha, produccion_esperada_g, banco_semillas, thc_pct, cbd_pct, ubicacion, lote:lotes(codigo)')
     .order('codigo', { ascending: false })
     .limit(500);
+  if (verAnulados) query.not('anulado_en', 'is', null);
+  else query.is('anulado_en', null);
+
+  const { data, error } = await query;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold text-brand">Plantas</h1>
-        <Link href="/agricola/plantas/nuevo" className="btn-primary">
-          + Nueva planta
-        </Link>
+        <h1 className="text-xl font-bold text-brand">
+          Plantas{verAnulados && <span className="text-neutral-400 font-normal"> — anuladas</span>}
+        </h1>
+        <div className="flex gap-3">
+          <Link href={verAnulados ? '/agricola/plantas' : '/agricola/plantas?ver=anulados'} className="btn-secondary">
+            {verAnulados ? 'Ver vigentes' : 'Ver anuladas'}
+          </Link>
+          <a href="/agricola/plantas/exportar" className="btn-secondary">
+            Descargar Excel
+          </a>
+          {!verAnulados && (
+            <Link href="/agricola/plantas/nuevo" className="btn-primary">
+              + Nueva planta
+            </Link>
+          )}
+        </div>
       </div>
       <p className="text-sm text-neutral-500 mb-6">Manual Interno 5.4 / 5.5 — código individual CP-</p>
 
@@ -49,7 +66,7 @@ export default async function PlantasPage() {
             {(data ?? []).length === 0 && (
               <tr>
                 <td colSpan={11} className="text-center text-neutral-500 py-8">
-                  Sin plantas registradas todavía.
+                  {verAnulados ? 'Sin plantas anuladas.' : 'Sin plantas registradas todavía.'}
                 </td>
               </tr>
             )}
