@@ -19,11 +19,11 @@ export default async function PlantasPage({ searchParams }: { searchParams?: { v
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
         <h1 className="text-xl font-bold text-brand">
           Plantas{verAnulados && <span className="text-neutral-400 font-normal"> — anuladas</span>}
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <Link href={verAnulados ? '/agricola/plantas' : '/agricola/plantas?ver=anulados'} className="btn-secondary">
             {verAnulados ? 'Ver vigentes' : 'Ver anuladas'}
           </Link>
@@ -45,53 +45,98 @@ export default async function PlantasPage({ searchParams }: { searchParams?: { v
         </p>
       )}
 
-      <div className="card overflow-x-auto">
-        <table className="data-table w-full border-collapse">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Lote</th>
-              <th>Variedad</th>
-              <th>Banco semillas</th>
-              <th>% THC</th>
-              <th>% CBD</th>
-              <th>Estado sanitario</th>
-              <th>Cosecha estimada</th>
-              <th>Producción esperada</th>
-              <th>Ubicación</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data ?? []).length === 0 && (
-              <tr>
-                <td colSpan={11} className="text-center text-neutral-500 py-8">
-                  {verAnulados ? 'Sin plantas anuladas.' : 'Sin plantas registradas todavía.'}
-                </td>
-              </tr>
-            )}
+      {(data ?? []).length === 0 ? (
+        <div className="card p-8 text-center text-neutral-500 text-sm">
+          {verAnulados ? 'Sin plantas anuladas.' : 'Sin plantas registradas todavía.'}
+        </div>
+      ) : (
+        <>
+          {/* Móvil: tarjetas apiladas */}
+          <div className="md:hidden space-y-3">
             {(data ?? []).map((p: any) => (
-              <tr key={p.id}>
-                <td>{p.codigo}</td>
-                <td>{p.lote?.codigo ?? '—'}</td>
-                <td>{p.variedad ?? '—'}</td>
-                <td>{p.banco_semillas ?? '—'}</td>
-                <td>{p.thc_pct ?? '—'}</td>
-                <td>{p.cbd_pct ?? '—'}</td>
-                <td>{p.estado_sanitario ?? '—'}</td>
-                <td>{p.fecha_cosecha ?? '—'}</td>
-                <td>{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</td>
-                <td>{p.ubicacion ?? '—'}</td>
-                <td>
-                  <Link href={`/agricola/plantas/${p.id}`} className="text-brand underline">
-                    Ver
-                  </Link>
-                </td>
-              </tr>
+              <Link key={p.id} href={`/agricola/plantas/${p.id}`} className="mobile-list-card">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-semibold text-brand">{p.codigo}</p>
+                  <span className="text-xs text-neutral-500">{p.lote?.codigo ?? 'sin lote'}</span>
+                </div>
+                <dl className="space-y-0.5 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Variedad</dt>
+                    <dd className="text-right">{p.variedad ?? '—'}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Banco semillas</dt>
+                    <dd className="text-right">{p.banco_semillas ?? '—'}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">% THC / % CBD</dt>
+                    <dd className="text-right">{p.thc_pct ?? '—'} / {p.cbd_pct ?? '—'}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Estado sanitario</dt>
+                    <dd className="text-right">{p.estado_sanitario ?? '—'}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Cosecha estimada</dt>
+                    <dd className="text-right">{p.fecha_cosecha ?? '—'}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Producción esperada</dt>
+                    <dd className="text-right">{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Ubicación</dt>
+                    <dd className="text-right">{p.ubicacion ?? '—'}</dd>
+                  </div>
+                </dl>
+                <p className="text-brand text-sm mt-2 font-medium">Ver →</p>
+              </Link>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop: tabla */}
+          <div className="hidden md:block card overflow-x-auto">
+            <table className="data-table w-full border-collapse">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Lote</th>
+                  <th>Variedad</th>
+                  <th>Banco semillas</th>
+                  <th>% THC</th>
+                  <th>% CBD</th>
+                  <th>Estado sanitario</th>
+                  <th>Cosecha estimada</th>
+                  <th>Producción esperada</th>
+                  <th>Ubicación</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data ?? []).map((p: any) => (
+                  <tr key={p.id}>
+                    <td>{p.codigo}</td>
+                    <td>{p.lote?.codigo ?? '—'}</td>
+                    <td>{p.variedad ?? '—'}</td>
+                    <td>{p.banco_semillas ?? '—'}</td>
+                    <td>{p.thc_pct ?? '—'}</td>
+                    <td>{p.cbd_pct ?? '—'}</td>
+                    <td>{p.estado_sanitario ?? '—'}</td>
+                    <td>{p.fecha_cosecha ?? '—'}</td>
+                    <td>{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</td>
+                    <td>{p.ubicacion ?? '—'}</td>
+                    <td>
+                      <Link href={`/agricola/plantas/${p.id}`} className="text-brand underline">
+                        Ver
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

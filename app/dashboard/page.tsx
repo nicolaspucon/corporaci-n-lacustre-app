@@ -75,7 +75,42 @@ export default async function DashboardPage() {
           <h2 className="font-semibold text-brand mb-3">
             Vencimientos de socios activos (próximos 30 días)
           </h2>
-          <div className="card overflow-x-auto">
+          {/* Móvil: tarjetas apiladas */}
+          <div className="md:hidden space-y-3">
+            {vencimientos.map((v, i) => (
+              <Link key={i} href={`/socios/${v.socioId}`} className="mobile-list-card">
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <p className="font-semibold text-brand">{v.socioCus} — {v.socioNombre}</p>
+                </div>
+                <dl className="space-y-0.5 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Tipo</dt>
+                    <dd className="text-right capitalize">{v.tipo}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Detalle</dt>
+                    <dd className="text-right">{v.detalle}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Vencimiento</dt>
+                    <dd className="text-right">{new Date(v.fechaVencimiento).toLocaleDateString('es-CL')}</dd>
+                  </div>
+                </dl>
+                <span
+                  className={
+                    v.vencido
+                      ? 'inline-block mt-2 text-xs font-semibold text-red-600 bg-red-50 rounded-full px-3 py-1'
+                      : 'inline-block mt-2 text-xs font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1'
+                  }
+                >
+                  {v.vencido ? `Vencido hace ${Math.abs(v.diasRestantes)} días` : `Vence en ${v.diasRestantes} días`}
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop: tabla */}
+          <div className="hidden md:block card overflow-x-auto">
             <table className="data-table w-full border-collapse">
               <thead>
                 <tr>

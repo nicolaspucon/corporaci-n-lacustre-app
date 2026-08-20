@@ -26,11 +26,11 @@ export default async function EsquejesPage({ searchParams }: { searchParams?: { 
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
         <h1 className="text-xl font-bold text-brand">
           Esquejes (propagación){verAnulados && <span className="text-neutral-400 font-normal"> — anulados</span>}
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <Link href={verAnulados ? '/agricola/esquejes' : '/agricola/esquejes?ver=anulados'} className="btn-secondary">
             {verAnulados ? 'Ver vigentes' : 'Ver anulados'}
           </Link>
@@ -55,47 +55,78 @@ export default async function EsquejesPage({ searchParams }: { searchParams?: { 
         </p>
       )}
 
-      <div className="card overflow-x-auto">
-        <table className="data-table w-full border-collapse">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Variedad</th>
-              <th>Fecha</th>
-              <th>Realizados</th>
-              <th>Enraizados</th>
-              <th>Perdidos</th>
-              <th>Estado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data ?? []).length === 0 && (
-              <tr>
-                <td colSpan={8} className="text-center text-neutral-500 py-8">
-                  {verAnulados ? 'Sin esquejados anulados.' : 'Sin esquejados registrados todavía.'}
-                </td>
-              </tr>
-            )}
+      {(data ?? []).length === 0 ? (
+        <div className="card p-8 text-center text-neutral-500 text-sm">
+          {verAnulados ? 'Sin esquejados anulados.' : 'Sin esquejados registrados todavía.'}
+        </div>
+      ) : (
+        <>
+          {/* Móvil: tarjetas apiladas */}
+          <div className="md:hidden space-y-3">
             {(data ?? []).map((e: any) => (
-              <tr key={e.id}>
-                <td>{e.codigo}</td>
-                <td>{e.variedad}</td>
-                <td>{e.fecha}</td>
-                <td>{e.cantidad_realizados}</td>
-                <td>{e.cantidad_enraizadas ?? '—'}</td>
-                <td>{e.cantidad_perdidas ?? '—'}</td>
-                <td>{ESTADO_LABELS[e.estado] ?? e.estado}</td>
-                <td>
-                  <Link href={`/agricola/esquejes/${e.id}`} className="text-brand underline">
-                    Ver
-                  </Link>
-                </td>
-              </tr>
+              <Link key={e.id} href={`/agricola/esquejes/${e.id}`} className="mobile-list-card">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-semibold text-brand">{e.codigo}</p>
+                  <span className="text-xs font-semibold text-neutral-600 bg-neutral-100 rounded-full px-2.5 py-1">
+                    {ESTADO_LABELS[e.estado] ?? e.estado}
+                  </span>
+                </div>
+                <dl className="space-y-0.5 text-sm">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Variedad</dt>
+                    <dd className="text-right">{e.variedad}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Fecha</dt>
+                    <dd className="text-right">{e.fecha}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-neutral-500 shrink-0">Realizados / Enraizados / Perdidos</dt>
+                    <dd className="text-right">{e.cantidad_realizados} / {e.cantidad_enraizadas ?? '—'} / {e.cantidad_perdidas ?? '—'}</dd>
+                  </div>
+                </dl>
+                <p className="text-brand text-sm mt-2 font-medium">Ver →</p>
+              </Link>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop: tabla */}
+          <div className="hidden md:block card overflow-x-auto">
+            <table className="data-table w-full border-collapse">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Variedad</th>
+                  <th>Fecha</th>
+                  <th>Realizados</th>
+                  <th>Enraizados</th>
+                  <th>Perdidos</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data ?? []).map((e: any) => (
+                  <tr key={e.id}>
+                    <td>{e.codigo}</td>
+                    <td>{e.variedad}</td>
+                    <td>{e.fecha}</td>
+                    <td>{e.cantidad_realizados}</td>
+                    <td>{e.cantidad_enraizadas ?? '—'}</td>
+                    <td>{e.cantidad_perdidas ?? '—'}</td>
+                    <td>{ESTADO_LABELS[e.estado] ?? e.estado}</td>
+                    <td>
+                      <Link href={`/agricola/esquejes/${e.id}`} className="text-brand underline">
+                        Ver
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

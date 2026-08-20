@@ -22,35 +22,69 @@ export default function DataTable({
     );
   }
 
+  const [primeraColumna, ...columnasResto] = columns;
+
   return (
-    <div className="card overflow-x-auto">
-      <table className="data-table w-full border-collapse">
-        <thead>
-          <tr>
-            {columns.map((c) => (
-              <th key={c.key}>{c.label}</th>
-            ))}
-            {linkTo && <th></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={row.id ?? i}>
+    <>
+      {/* Móvil: tarjetas apiladas en vez de tabla (más fácil de leer/usar con el dedo). */}
+      <div className="md:hidden space-y-3">
+        {rows.map((row, i) => {
+          const contenido = (
+            <>
+              <p className="font-semibold text-brand mb-1">{formatCell(row[primeraColumna.key])}</p>
+              <dl className="space-y-0.5">
+                {columnasResto.map((c) => (
+                  <div key={c.key} className="flex items-baseline justify-between gap-3 text-sm">
+                    <dt className="text-neutral-500 shrink-0">{c.label}</dt>
+                    <dd className="text-right text-neutral-800">{formatCell(row[c.key])}</dd>
+                  </div>
+                ))}
+              </dl>
+              {linkTo && <p className="text-brand text-sm mt-2 font-medium">Ver →</p>}
+            </>
+          );
+          return linkTo ? (
+            <Link key={row.id ?? i} href={linkTo(row)} className="mobile-list-card">
+              {contenido}
+            </Link>
+          ) : (
+            <div key={row.id ?? i} className="card p-4">
+              {contenido}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: tabla normal. */}
+      <div className="hidden md:block card overflow-x-auto">
+        <table className="data-table w-full border-collapse">
+          <thead>
+            <tr>
               {columns.map((c) => (
-                <td key={c.key}>{formatCell(row[c.key])}</td>
+                <th key={c.key}>{c.label}</th>
               ))}
-              {linkTo && (
-                <td>
-                  <Link href={linkTo(row)} className="text-brand underline text-sm">
-                    Ver
-                  </Link>
-                </td>
-              )}
+              {linkTo && <th></th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={row.id ?? i}>
+                {columns.map((c) => (
+                  <td key={c.key}>{formatCell(row[c.key])}</td>
+                ))}
+                {linkTo && (
+                  <td>
+                    <Link href={linkTo(row)} className="text-brand underline text-sm">
+                      Ver
+                    </Link>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

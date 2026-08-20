@@ -32,7 +32,7 @@ export default async function EntregaDetallePage({ params }: { params: { id: str
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-brand mb-1">Entrega {entrega.codigo}</h1>
           <p className="text-sm text-neutral-500">

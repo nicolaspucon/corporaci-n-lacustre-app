@@ -37,12 +37,12 @@ export default async function MadreDetallePage({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1">
         <h1 className="text-xl font-bold text-brand">
           Madre {madre.codigo} <span className="text-neutral-400 font-normal">— {madre.variedad}</span>
         </h1>
         {!anulado && (
-          <form action={actualizarEstadoMadre} className="flex items-center gap-2">
+          <form action={actualizarEstadoMadre} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="madre_id" value={madre.id} />
             <select name="estado" defaultValue={madre.estado} className="input py-1 text-sm w-auto">
               {ESTADOS.map((e) => (

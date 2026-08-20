@@ -11,15 +11,17 @@ body {
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-light transition-colors disabled:opacity-50;
+  @apply inline-flex items-center justify-center rounded-md bg-brand px-4 py-2.5 md:py-2 text-base md:text-sm font-medium text-white hover:bg-brand-light active:bg-brand-light transition-colors disabled:opacity-50 min-h-[44px] md:min-h-0;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors;
+  @apply inline-flex items-center justify-center rounded-md border border-neutral-300 bg-white px-4 py-2.5 md:py-2 text-base md:text-sm font-medium text-neutral-700 hover:bg-neutral-100 active:bg-neutral-100 transition-colors min-h-[44px] md:min-h-0;
 }
 
+/* text-base (16px) evita que Safari/iOS haga zoom automático al enfocar un
+   campo en el celular; en desktop (md+) volvemos a text-sm para más densidad. */
 .input {
-  @apply w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand;
+  @apply w-full rounded-md border border-neutral-300 px-3 py-2.5 md:py-2 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand min-h-[44px] md:min-h-0;
 }
 
 .label {
@@ -30,12 +32,21 @@ body {
   @apply bg-white rounded-lg border border-neutral-200 shadow-sm;
 }
 
+table.data-table {
+  @apply whitespace-nowrap;
+}
 table.data-table th {
-  @apply bg-brand text-white text-left text-xs font-semibold uppercase tracking-wide px-3 py-2;
+  @apply bg-brand text-white text-left text-xs font-semibold uppercase tracking-wide px-3 py-2.5;
 }
 table.data-table td {
-  @apply px-3 py-2 text-sm border-b border-neutral-100;
+  @apply px-3 py-2.5 text-sm border-b border-neutral-100;
 }
 table.data-table tr:nth-child(even) {
   @apply bg-brand-pale/40;
+}
+
+/* Tarjetas de listado en móvil (alternativa a las tablas, que en pantallas
+   chicas obligan a hacer scroll horizontal incómodo). */
+.mobile-list-card {
+  @apply card p-4 block active:bg-neutral-50;
 }

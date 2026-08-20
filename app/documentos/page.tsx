@@ -75,47 +75,89 @@ export default async function DocumentosPage({
         </p>
       )}
 
-      <div className="card overflow-x-auto">
-        <table className="data-table w-full border-collapse">
-          <thead>
-            <tr>
-              <th>Socio</th>
-              <th>Tipo</th>
-              <th>Archivo</th>
-              <th>Vigencia</th>
-              <th>Subido</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {documentosConUrl.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center text-neutral-500 py-8">
-                  Sin documentos que coincidan con el filtro.
-                </td>
-              </tr>
-            )}
+      {documentosConUrl.length === 0 ? (
+        <div className="card p-8 text-center text-neutral-500 text-sm">Sin documentos que coincidan con el filtro.</div>
+      ) : (
+        <>
+          {/* Móvil: tarjetas apiladas */}
+          <div className="md:hidden space-y-3">
             {documentosConUrl.map((d) => {
               const vencido = d.vigencia_hasta && new Date(d.vigencia_hasta) < hoy;
               const porVencer = d.vigencia_hasta && !vencido && new Date(d.vigencia_hasta) <= en30dias;
               return (
-                <tr key={d.id}>
-                  <td>{d.socio?.cus} — {d.socio?.nombre_completo}</td>
-                  <td>{d.tipo}</td>
-                  <td>{d.nombre_archivo ?? '—'}</td>
-                  <td>
-                    {d.vigencia_hasta ?? '—'}
-                    {vencido && <span className="ml-2 text-xs font-semibold text-red-600">Vencido</span>}
-                    {porVencer && <span className="ml-2 text-xs font-semibold text-amber-600">Por vencer</span>}
-                  </td>
-                  <td>{new Date(d.created_at).toLocaleDateString('es-CL')}</td>
-                  <td>{d.url && <a href={d.url} target="_blank" rel="noreferrer" className="text-brand underline">Ver</a>}</td>
-                </tr>
+                <div key={d.id} className="card p-4">
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <p className="font-semibold text-brand">{d.socio?.cus} — {d.socio?.nombre_completo}</p>
+                    {d.url && (
+                      <a href={d.url} target="_blank" rel="noreferrer" className="text-brand underline text-sm shrink-0">
+                        Ver
+                      </a>
+                    )}
+                  </div>
+                  <dl className="space-y-0.5 text-sm">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Tipo</dt>
+                      <dd className="text-right">{d.tipo}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Archivo</dt>
+                      <dd className="text-right">{d.nombre_archivo ?? '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Vigencia</dt>
+                      <dd className="text-right">
+                        {d.vigencia_hasta ?? '—'}
+                        {vencido && <span className="ml-2 text-xs font-semibold text-red-600">Vencido</span>}
+                        {porVencer && <span className="ml-2 text-xs font-semibold text-amber-600">Por vencer</span>}
+                      </dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Subido</dt>
+                      <dd className="text-right">{new Date(d.created_at).toLocaleDateString('es-CL')}</dd>
+                    </div>
+                  </dl>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop: tabla */}
+          <div className="hidden md:block card overflow-x-auto">
+            <table className="data-table w-full border-collapse">
+              <thead>
+                <tr>
+                  <th>Socio</th>
+                  <th>Tipo</th>
+                  <th>Archivo</th>
+                  <th>Vigencia</th>
+                  <th>Subido</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {documentosConUrl.map((d) => {
+                  const vencido = d.vigencia_hasta && new Date(d.vigencia_hasta) < hoy;
+                  const porVencer = d.vigencia_hasta && !vencido && new Date(d.vigencia_hasta) <= en30dias;
+                  return (
+                    <tr key={d.id}>
+                      <td>{d.socio?.cus} — {d.socio?.nombre_completo}</td>
+                      <td>{d.tipo}</td>
+                      <td>{d.nombre_archivo ?? '—'}</td>
+                      <td>
+                        {d.vigencia_hasta ?? '—'}
+                        {vencido && <span className="ml-2 text-xs font-semibold text-red-600">Vencido</span>}
+                        {porVencer && <span className="ml-2 text-xs font-semibold text-amber-600">Por vencer</span>}
+                      </td>
+                      <td>{new Date(d.created_at).toLocaleDateString('es-CL')}</td>
+                      <td>{d.url && <a href={d.url} target="_blank" rel="noreferrer" className="text-brand underline">Ver</a>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

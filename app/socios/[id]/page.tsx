@@ -54,13 +54,13 @@ export default async function SocioDetallePage({
         {anulado && (
           <AnuladoBanner fecha={socio.anulado_en} anuladoPor={socio.anulador?.nombre_completo} motivo={socio.motivo_anulacion} />
         )}
-        <div className="flex items-center justify-between mb-1 mt-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1 mt-3">
           <h1 className="text-xl font-bold text-brand">
             {socio.nombre_completo} <span className="text-neutral-400 font-normal">— {socio.cus}</span>
           </h1>
           {!anulado && (
-            <div className="flex items-center gap-3">
-              <form action={actualizarEstadoSocio} className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <form action={actualizarEstadoSocio} className="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="socio_id" value={socio.id} />
                 <select name="estado" defaultValue={socio.estado} className="input py-1 text-sm w-auto">
                   {ESTADOS.map((e) => (
@@ -124,43 +124,73 @@ export default async function SocioDetallePage({
       {/* Documentos ya subidos */}
       <section>
         <h2 className="font-semibold text-brand mb-3">Documentos del expediente</h2>
-        <div className="card overflow-x-auto">
-          <table className="data-table w-full border-collapse">
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Archivo</th>
-                <th>Vigencia hasta</th>
-                <th>Subido</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {documentosConUrl.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center text-neutral-500 py-6">
-                    Sin documentos subidos todavía.
-                  </td>
-                </tr>
-              )}
+        {documentosConUrl.length === 0 ? (
+          <div className="card p-6 text-center text-neutral-500 text-sm">Sin documentos subidos todavía.</div>
+        ) : (
+          <>
+            {/* Móvil: tarjetas apiladas */}
+            <div className="md:hidden space-y-3">
               {documentosConUrl.map((d) => (
-                <tr key={d.id}>
-                  <td>{d.tipo}</td>
-                  <td>{d.nombre_archivo ?? '—'}</td>
-                  <td>{d.vigencia_hasta ?? '—'}</td>
-                  <td>{new Date(d.created_at).toLocaleDateString('es-CL')}</td>
-                  <td>
+                <div key={d.id} className="card p-4">
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <p className="font-semibold text-brand capitalize">{d.tipo}</p>
                     {d.url && (
-                      <a href={d.url} target="_blank" rel="noreferrer" className="text-brand underline">
+                      <a href={d.url} target="_blank" rel="noreferrer" className="text-brand underline text-sm shrink-0">
                         Ver
                       </a>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                  <dl className="space-y-0.5 text-sm">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Archivo</dt>
+                      <dd className="text-right">{d.nombre_archivo ?? '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Vigencia hasta</dt>
+                      <dd className="text-right">{d.vigencia_hasta ?? '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Subido</dt>
+                      <dd className="text-right">{new Date(d.created_at).toLocaleDateString('es-CL')}</dd>
+                    </div>
+                  </dl>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* Desktop: tabla */}
+            <div className="hidden md:block card overflow-x-auto">
+              <table className="data-table w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Archivo</th>
+                    <th>Vigencia hasta</th>
+                    <th>Subido</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documentosConUrl.map((d) => (
+                    <tr key={d.id}>
+                      <td>{d.tipo}</td>
+                      <td>{d.nombre_archivo ?? '—'}</td>
+                      <td>{d.vigencia_hasta ?? '—'}</td>
+                      <td>{new Date(d.created_at).toLocaleDateString('es-CL')}</td>
+                      <td>
+                        {d.url && (
+                          <a href={d.url} target="_blank" rel="noreferrer" className="text-brand underline">
+                            Ver
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
 
       {/* Firma en pantalla de los documentos del expediente */}

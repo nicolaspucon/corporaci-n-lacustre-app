@@ -80,12 +80,12 @@ export default async function RegistroListPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
         <h1 className="text-xl font-bold text-brand">
           {entity.label}
           {verAnulados && <span className="text-neutral-400 font-normal"> — anulados</span>}
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <Link
             href={verAnulados ? `/registros/${entity.slug}` : `/registros/${entity.slug}?ver=anulados`}
             className="btn-secondary"
@@ -154,7 +154,7 @@ export default async function RegistroListPage({
 
       {resumenStock && (
         <div className="card p-5 mb-6">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
             <h2 className="font-semibold text-brand">Stock disponible — ahora mismo</h2>
             <p className="text-2xl font-bold text-brand">{resumenStock.totalDisponible} g</p>
           </div>

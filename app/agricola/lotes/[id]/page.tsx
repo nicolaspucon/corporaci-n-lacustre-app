@@ -70,10 +70,10 @@ export default async function LoteDetallePage({
         <AnuladoBanner fecha={lote.anulado_en} anuladoPor={lote.anulador?.nombre_completo} motivo={lote.motivo_anulacion} />
       )}
       <div>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1">
           <h1 className="text-xl font-bold text-brand">Lote {lote.codigo}</h1>
           {!anulado && (
-            <form action={actualizarEstadoLote} className="flex items-center gap-2">
+            <form action={actualizarEstadoLote} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="lote_id" value={lote.id} />
               <select name="estado" defaultValue={lote.estado} className="input py-1 text-sm w-auto">
                 {ESTADOS.map((e) => (
@@ -156,45 +156,77 @@ export default async function LoteDetallePage({
       </section>
 
       <section>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h2 className="font-semibold text-brand">Plantas de este lote</h2>
           <Link href="/agricola/plantas/nuevo" className="btn-secondary text-sm">
             + Registrar planta
           </Link>
         </div>
-        <div className="card overflow-x-auto">
-          <table className="data-table w-full border-collapse">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Variedad</th>
-                <th>Estado sanitario</th>
-                <th>Germinación</th>
-                <th>Cosecha</th>
-                <th>Producción esperada</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(plantas ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center text-neutral-500 py-6">Sin plantas registradas en este lote.</td>
-                </tr>
-              )}
+        {(plantas ?? []).length === 0 ? (
+          <div className="card p-6 text-center text-neutral-500 text-sm">Sin plantas registradas en este lote.</div>
+        ) : (
+          <>
+            {/* Móvil: tarjetas apiladas */}
+            <div className="md:hidden space-y-3">
               {(plantas ?? []).map((p) => (
-                <tr key={p.id}>
-                  <td>{p.codigo}</td>
-                  <td>{p.variedad ?? '—'}</td>
-                  <td>{p.estado_sanitario ?? '—'}</td>
-                  <td>{p.fecha_germinacion ?? '—'}</td>
-                  <td>{p.fecha_cosecha ?? '—'}</td>
-                  <td>{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</td>
-                  <td><Link href={`/agricola/plantas/${p.id}`} className="text-brand underline">Ver</Link></td>
-                </tr>
+                <Link key={p.id} href={`/agricola/plantas/${p.id}`} className="mobile-list-card">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-semibold text-brand">{p.codigo}</p>
+                    <span className="text-xs text-neutral-500">{p.estado_sanitario ?? '—'}</span>
+                  </div>
+                  <dl className="space-y-0.5 text-sm">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Variedad</dt>
+                      <dd className="text-right">{p.variedad ?? '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Germinación</dt>
+                      <dd className="text-right">{p.fecha_germinacion ?? '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Cosecha</dt>
+                      <dd className="text-right">{p.fecha_cosecha ?? '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt className="text-neutral-500 shrink-0">Producción esperada</dt>
+                      <dd className="text-right">{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</dd>
+                    </div>
+                  </dl>
+                </Link>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* Desktop: tabla */}
+            <div className="hidden md:block card overflow-x-auto">
+              <table className="data-table w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Variedad</th>
+                    <th>Estado sanitario</th>
+                    <th>Germinación</th>
+                    <th>Cosecha</th>
+                    <th>Producción esperada</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(plantas ?? []).map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.codigo}</td>
+                      <td>{p.variedad ?? '—'}</td>
+                      <td>{p.estado_sanitario ?? '—'}</td>
+                      <td>{p.fecha_germinacion ?? '—'}</td>
+                      <td>{p.fecha_cosecha ?? '—'}</td>
+                      <td>{p.produccion_esperada_g ? `${p.produccion_esperada_g} g` : '—'}</td>
+                      <td><Link href={`/agricola/plantas/${p.id}`} className="text-brand underline">Ver</Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
 
       {lote.estado === 'cerrado' && (
